@@ -57,6 +57,16 @@ function getOrCreateDummyCharacterPromptOrder(presetData) {
     const dummyCharacterId = 100001;
     let characterPromptOrder = presetData.prompt_order.find(order => order.character_id === dummyCharacterId);
     if (!characterPromptOrder) {
+        const existing = presetData.prompt_order
+            .filter(order => Array.isArray(order?.order) && order.order.length > 0)
+            .sort((a, b) => b.order.length - a.order.length)[0];
+        if (existing) {
+            characterPromptOrder = { character_id: dummyCharacterId, order: existing.order.map(o => ({ ...o })) };
+            presetData.prompt_order.push(characterPromptOrder);
+            return characterPromptOrder;
+        }
+    }
+    if (!characterPromptOrder) {
         characterPromptOrder = {
             character_id: dummyCharacterId,
             order: [

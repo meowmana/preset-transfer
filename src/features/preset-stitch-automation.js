@@ -796,7 +796,8 @@ function initPresetStitchAutomation() {
   try {
     PT.API.eventOn?.('preset_changed', onPresetChange);
     PT.API.eventOn?.('oai_preset_changed_after', () => setTimeout(() => onPresetChange(null), 0));
-    PT.API.eventOn?.('oai_preset_import_ready', payload => void handleOaiPresetImportReady(payload));
+    // 酒馆会等这个监听器做完才存导入的文件，必须返回 promise，否则缝合落在存盘之后
+    PT.API.eventOn?.('oai_preset_import_ready', payload => handleOaiPresetImportReady(payload));
   } catch {
     /* ignore */
   }

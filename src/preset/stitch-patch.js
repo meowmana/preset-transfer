@@ -298,6 +298,19 @@ function extractStitchPatch(presetData, options = {}) {
   };
 }
 
+const BUILTIN_PROMPT_IDS = new Set([
+  'main', 'nsfw', 'dialogueExamples', 'jailbreak', 'chatHistory', 'worldInfoAfter', 'worldInfoBefore',
+  'enhanceDefinitions', 'charDescription', 'charPersonality', 'scenario', 'personaDescription',
+]);
+
+// 目标只剩酒馆出厂条目时说明没读到真预设，缝上去再存会把原条目整片冲掉
+function assertTargetHasOwnEntries(targetData) {
+  const own = targetData.prompts.filter(p => p?.identifier && !BUILTIN_PROMPT_IDS.has(p.identifier) && !isStitchEntry(p));
+  if (own.length === 0) {
+    throw new Error('目标预设里没读到原有条目（只有酒馆自带的基础条目），已停止缝合，没有改动任何内容');
+  }
+}
+
 function applyStitchPatch(targetData, patch, options = {}) {
   const { preserveExistingNonPatchStitches = true, insertedEnabled } = options;
 
@@ -310,6 +323,7 @@ function applyStitchPatch(targetData, patch, options = {}) {
   }
 
   if (!Array.isArray(targetData.prompts)) targetData.prompts = [];
+  assertTargetHasOwnEntries(targetData);
   const targetOrder = getOrCreateDummyCharacterPromptOrder(targetData);
   if (!Array.isArray(targetOrder.order)) targetOrder.order = [];
 
