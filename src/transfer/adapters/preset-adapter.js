@@ -61,9 +61,10 @@ async function insertEntry(apiInfo, targetPreset, newEntry, insertPosition, auto
         characterPromptOrder.order.push(newOrderEntry);
     }
 
+    const baibaiGroup = tagBaibaiGroup(targetData, [stitchedPrompt.identifier], { targetGroupId, targetIdentifier });
     await apiInfo.presetManager.savePreset(targetPreset, targetData);
 
-    if (targetIdentifier || targetGroupId) {
+    if (baibaiGroup === null && (targetIdentifier || targetGroupId)) {
         const orderedIdentifiers = characterPromptOrder.order.map(entry => String(entry?.identifier ?? '').trim()).filter(Boolean);
         await reassignPresetGroupingMembers(
             targetPreset,
@@ -72,6 +73,25 @@ async function insertEntry(apiInfo, targetPreset, newEntry, insertPosition, auto
             { targetIdentifier, targetGroupId },
         );
     }
+}
+
+// 目标用柏宝箱分组时，把插进来的条目登记进柏宝箱的组：优先点中的组，其次上面那条所在的组。
+// 返回 null 表示目标没用柏宝箱；返回 '' 表示没找到组
+function tagBaibaiGroup(presetData, identifiers, { targetGroupId, targetIdentifier } = {}) {
+    const store = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
+    if (!store || !Array.isArray(store.groups)) return null;
+    if (!store.prompts || typeof store.prompts !== 'object') store.prompts = {};
+
+    const exists = id => !!id && store.groups.some(g => String(g?.id ?? '') === id);
+    const picked = String(targetGroupId ?? '').trim();
+    let groupId = picked.startsWith('baibai:') ? picked.slice('baibai:'.length) : '';
+    if (!exists(groupId)) groupId = String(store.prompts[String(targetIdentifier ?? '').trim()]?.groupId ?? '');
+    if (!exists(groupId)) return '';
+
+    for (const identifier of identifiers) {
+        store.prompts[identifier] = { ...(store.prompts[identifier] || {}), groupId };
+    }
+    return groupId;
 }
 
 // 目标预设用柏宝箱分组时，把整组搬来的条目也登记进柏宝箱的同名组（没有就新建）
@@ -197,9 +217,12 @@ async function transferEntries(
         }
     }
 
+    const baibaiGroup = insertedOrderEntries.length > 0 && (targetIdentifier || targetGroupId)
+        ? tagBaibaiGroup(targetData, insertedOrderEntries.map(entry => entry.identifier), { targetGroupId, targetIdentifier })
+        : null;
     await apiInfo.presetManager.savePreset(targetPreset, targetData);
 
-    if ((targetIdentifier || targetGroupId) && insertedOrderEntries.length > 0) {
+    if (baibaiGroup === null && (targetIdentifier || targetGroupId) && insertedOrderEntries.length > 0) {
         const orderedIdentifiers = characterPromptOrder.order.map(entry => String(entry?.identifier ?? '').trim()).filter(Boolean);
         await reassignPresetGroupingMembers(
             targetPreset,

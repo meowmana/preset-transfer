@@ -8,9 +8,11 @@ async function saveEntryChanges(apiInfo, presetName, originalEntry, updatedEntry
     if (!presetData.prompts) presetData.prompts = [];
 
     // 查找要更新的条目
-    const entryIndex = presetData.prompts.findIndex(
-      p => p.name === originalEntry.name || (p.identifier && p.identifier === originalEntry.identifier),
-    );
+    // 先按 identifier 找：用“在此处新建”建出的几条都叫“新提示词”，按名字会改到别的那条
+    let entryIndex = originalEntry.identifier
+      ? presetData.prompts.findIndex(p => p.identifier === originalEntry.identifier)
+      : -1;
+    if (entryIndex === -1) entryIndex = presetData.prompts.findIndex(p => p.name === originalEntry.name);
 
     if (entryIndex === -1) {
       throw new Error(`未找到条目 "${originalEntry.name}"`);
