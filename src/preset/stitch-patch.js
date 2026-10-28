@@ -150,6 +150,50 @@ function createAnchorMatcher(targetData) {
   return { resolve };
 }
 
+function readBaibaiStore(presetData) {
+  const store = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
+  if (!store || !Array.isArray(store.groups)) return null;
+  if (!store.prompts || typeof store.prompts !== 'object') store.prompts = {};
+  return store;
+}
+
+function getBaibaiGroupName(store, identifier) {
+  if (!store) return '';
+  const groupId = String(store.prompts?.[identifier]?.groupId ?? '');
+  if (!groupId) return '';
+  const group = store.groups.find(g => String(g?.id ?? '') === groupId);
+  return group ? String(group.name ?? '').trim() : '';
+}
+
+// 缝进来的条目登记进柏宝箱的组：先找源预设里同名的组，找不到就跟正上方那条（顶上没有就跟正下方那条）
+function tagStitchesIntoBaibaiGroups(targetData, stitchGroupNames) {
+  const store = readBaibaiStore(targetData);
+  if (!store || stitchGroupNames.size === 0) return 0;
+
+  const groupIds = new Set(store.groups.map(g => String(g?.id ?? '')).filter(Boolean));
+  const groupIdOf = identifier => {
+    const id = String(store.prompts[identifier]?.groupId ?? '');
+    return groupIds.has(id) ? id : '';
+  };
+  const order = (getDummyCharacterPromptOrder(targetData)?.order ?? []).map(o => o?.identifier).filter(Boolean);
+
+  let tagged = 0;
+  order.forEach((identifier, index) => {
+    if (!stitchGroupNames.has(identifier)) return;
+    const name = stitchGroupNames.get(identifier);
+    let groupId = name ? String(store.groups.find(g => String(g?.name ?? '').trim() === name)?.id ?? '') : '';
+    if (!groupId && index > 0) groupId = groupIdOf(order[index - 1]);
+    if (!groupId && index === 0) {
+      const next = order.find(id => !stitchGroupNames.has(id));
+      if (next) groupId = groupIdOf(next);
+    }
+    if (!groupId) return;
+    store.prompts[identifier] = { ...(store.prompts[identifier] || {}), groupId };
+    tagged += 1;
+  });
+  return tagged;
+}
+
 function chooseInsertIndex(targetOrderArray, run) {
   const prevIndex =
     run.prevAnchor ? targetOrderArray.findIndex(item => item && item.identifier === run.prevAnchor) : -1;
@@ -178,6 +222,8 @@ function extractStitchPatch(presetData, options = {}) {
   const { includeUninserted = true, anchorWindowSize = 5, compressForSnapshot = false } = options;
 
   const promptMap = buildPromptMapByIdentifier(presetData);
+  const baibaiStore = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
+  const sourceStore = baibaiStore && Array.isArray(baibaiStore.groups) ? baibaiStore : null;
   const order = getDummyCharacterPromptOrder(presetData);
   const orderItems = Array.isArray(order?.order) ? order.order : [];
 
@@ -229,6 +275,7 @@ function extractStitchPatch(presetData, options = {}) {
         stitchId,
         prompt: compressForSnapshot ? compressPromptForSnapshot(prompt) : cloneDeep(prompt),
         enabled: Boolean(item?.enabled),
+        groupName: getBaibaiGroupName(sourceStore, identifier),
       });
       currentRun.endSourceIndex = i;
       continue;
@@ -357,6 +404,7 @@ function applyStitchPatch(targetData, patch, options = {}) {
 
   const matcher = createAnchorMatcher(targetData);
 
+  const stitchGroupNames = new Map();
   let addedPrompts = 0;
   let updatedPrompts = 0;
   let insertedOrder = 0;
@@ -468,6 +516,7 @@ function applyStitchPatch(targetData, patch, options = {}) {
         identifier,
         enabled: typeof insertedEnabled === 'boolean' ? insertedEnabled : stitch?.enabled === true,
       });
+      stitchGroupNames.set(identifier, typeof stitch?.groupName === 'string' ? stitch.groupName.trim() : '');
       offset += 1;
       insertedOrder += 1;
     }
@@ -500,11 +549,14 @@ function applyStitchPatch(targetData, patch, options = {}) {
     });
   }
 
+  const groupedStitches = tagStitchesIntoBaibaiGroups(targetData, stitchGroupNames);
+
   return {
     addedPrompts,
     updatedPrompts,
     insertedOrder,
     movedOrder,
+    groupedStitches,
     appliedStitches: patchStitchIds.size,
   };
 }
