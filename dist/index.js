@@ -19066,7 +19066,7 @@ async function Ck({ adapterKey: e = "preset" } = {}) {
                         <span id="font-size-display">16px</span>
                     </div>
                     <div class="version-info">
-                        <span class="author">V${L(String((d == null ? void 0 : d.version) ?? "dev"))} by discord千秋梦</span>
+                        <span class="author">V${L(String((d == null ? void 0 : d.version) ?? "dev"))} · 原作 千秋梦 Preset Transfer<br>二改 by Seth-沉</span>
                     </div>
                 </div>
                 <div class="preset-selection">

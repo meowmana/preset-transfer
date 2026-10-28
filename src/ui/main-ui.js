@@ -72,7 +72,7 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
                         <span id="font-size-display">16px</span>
                     </div>
                     <div class="version-info">
-                        <span class="author">V${escapeHtml(String(extensionManifest?.version ?? 'dev'))} by discord千秋梦</span>
+                        <span class="author">V${escapeHtml(String(extensionManifest?.version ?? 'dev'))} · 原作 千秋梦 Preset Transfer<br>二改 by Seth-沉</span>
                     </div>
                 </div>
                 <div class="preset-selection">
