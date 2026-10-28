@@ -2018,7 +2018,7 @@ async function Jb(e, t, n, r, o, i, s = "default", a = {}) {
         memberIdentifiers: k
       };
     }).filter(Boolean);
-    x.length > 0 && (await Nu(n, x, v), Yb(c, x) && await e.presetManager.savePreset(n, c));
+    x.length > 0 && (Yb(c, x) ? await e.presetManager.savePreset(n, c) : await Nu(n, x, v));
   }
 }
 async function qb(e, t, n) {
@@ -2065,7 +2065,8 @@ function Xb() {
         t.displayMode,
         {
           targetGroupId: t.targetGroupId,
-          targetIdentifier: t.targetIdentifier
+          targetIdentifier: t.targetIdentifier,
+          selectedGroups: t.selectedGroups
         }
       );
     },
@@ -2742,7 +2743,8 @@ function xy(e, t) {
       l.push({ index: d, identifier: p });
     }), r.push({
       name: s,
-      entries: l
+      entries: l,
+      entryIdentifiers: l.map((c) => String(c.identifier ?? "").trim()).filter(Boolean)
     });
   }), r;
 }

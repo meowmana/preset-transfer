@@ -226,9 +226,11 @@ async function transferEntries(
             .filter(Boolean);
 
         if (preservedGroups.length > 0) {
-            await preserveTransferredPresetGroups(targetPreset, preservedGroups, orderedIdentifiers);
+            // 两套分组同时建会在提示词面板里套成两层，目标用柏宝箱就只进柏宝箱
             if (addBaibaiGroups(targetData, preservedGroups)) {
                 await apiInfo.presetManager.savePreset(targetPreset, targetData);
+            } else {
+                await preserveTransferredPresetGroups(targetPreset, preservedGroups, orderedIdentifiers);
             }
         }
     }
@@ -292,6 +294,7 @@ export function createPresetTransferAdapter() {
                 {
                     targetGroupId: params.targetGroupId,
                     targetIdentifier: params.targetIdentifier,
+                    selectedGroups: params.selectedGroups,
                 },
             );
         },

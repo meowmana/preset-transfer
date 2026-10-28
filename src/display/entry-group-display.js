@@ -320,6 +320,7 @@ export function getSelectedGroups(side, $listContainer) {
     selectedGroups.push({
       name: groupName,
       entries,
+      entryIdentifiers: entries.map((e) => String(e.identifier ?? '').trim()).filter(Boolean),
     });
   });
 

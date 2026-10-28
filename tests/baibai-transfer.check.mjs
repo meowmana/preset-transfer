@@ -14,4 +14,11 @@ assert.equal(store.groups.length, 2);
 assert.equal(store.prompts.n3.groupId, store.groups[1].id);
 assert.equal(store.groups[1].name, 'CoT');
 assert.equal(add({ extensions: {} }, [{ name: 'x', memberIdentifiers: ['a'] }]), false);
-console.log('baibai-transfer: 5 条全过');
+
+// 整组的名单要一路传到 transferEntries：界面给 entryIdentifiers，适配器转交 selectedGroups
+const display = readFileSync(new URL('../src/display/entry-group-display.js', import.meta.url), 'utf8');
+const sel = display.slice(display.indexOf('export function getSelectedGroups('));
+assert.match(sel.slice(0, sel.indexOf('\n}\n')), /entryIdentifiers:/);
+const adapterTransfer = src.slice(src.indexOf('async transfer(apiInfo, params)'));
+assert.match(adapterTransfer.slice(0, adapterTransfer.indexOf('},\n')), /selectedGroups:\s*params\.selectedGroups/);
+console.log('baibai-transfer: 7 条全过');
