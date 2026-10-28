@@ -259,6 +259,7 @@ const BUILTIN_PROMPT_IDS = new Set([
 // 酒馆给 openai 预设改名时先在新名字下存一份空对象，再补存完整内容；轮询可能正好撞上中间那份空的
 async function waitForPresetWithEntries(apiInfo, presetName, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
+  let resaved = false;
   for (;;) {
     let data = null;
     try {
@@ -268,6 +269,12 @@ async function waitForPresetWithEntries(apiInfo, presetName, timeoutMs = 15000) 
     }
     const prompts = Array.isArray(data?.prompts) ? data.prompts : [];
     if (prompts.some(p => p?.identifier && !BUILTIN_PROMPT_IDS.has(p.identifier))) return data;
+    // 有的酒馆版本改名只存那份空对象、不补存；目标就是当前选中的预设时，替用户按一次“保存预设”把完整内容写进去
+    if (!resaved && PT.API.getLoadedPresetName?.() === presetName) {
+      resaved = true;
+      const $ = window.jQuery ?? window.$;
+      $?.('#update_oai_preset').trigger('click');
+    }
     if (Date.now() >= deadline) {
       throw new Error(`预设“${presetName}”里一直没读到条目，已停止缝合，没有改动任何内容`);
     }

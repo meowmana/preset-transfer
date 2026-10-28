@@ -28,13 +28,21 @@ const wi = auto.indexOf('async function waitForPresetWithEntries(');
 const ids2 = auto.slice(auto.indexOf('const BUILTIN_PROMPT_IDS'), auto.indexOf(']);', auto.indexOf('const BUILTIN_PROMPT_IDS')) + 3);
 const states = [{}, {}, { prompts: [{ identifier: 'main' }, { identifier: 'author-1' }] }];
 let reads = 0;
-const wait = new Function('getPresetDataFromManager', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(
-  () => states[Math.min(reads++, states.length - 1)],
+const wait = new Function('getPresetDataFromManager', 'PT', 'window', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(
+  () => states[Math.min(reads++, states.length - 1)], { API: {} }, {},
 );
 const got = await wait({}, 'x', 5000);
 assert.equal(got.prompts.length, 2);
 assert.ok(reads >= 3);
-const waitEmpty = new Function('getPresetDataFromManager', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(() => ({}));
+const waitEmpty = new Function('getPresetDataFromManager', 'PT', 'window', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(() => ({}), { API: {} }, {});
 await assert.rejects(waitEmpty({}, 'x', 600), /一直没读到条目/);
 assert.equal((auto.match(/await waitForPresetWithEntries\(apiInfo, targetPresetName\)/g) || []).length, 2);
+let clicked = 0;
+const waitSelected = new Function('getPresetDataFromManager', 'PT', 'window', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(
+  () => (clicked ? { prompts: [{ identifier: 'author-1' }] } : {}),
+  { API: { getLoadedPresetName: () => 'x' } },
+  { jQuery: (sel) => ({ trigger: () => { assert.equal(sel, '#update_oai_preset'); clicked++; } }) },
+);
+assert.equal((await waitSelected({}, 'x', 5000)).prompts.length, 1);
+assert.equal(clicked, 1);
 console.log('stitch-guard 改名空窗: 过');

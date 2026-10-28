@@ -9282,17 +9282,24 @@ const Fv = /* @__PURE__ */ new Set([
   "personaDescription"
 ]);
 async function Lg(e, t, n = 15e3) {
+  var i, s;
   const r = Date.now() + n;
+  let o = !1;
   for (; ; ) {
-    let o = null;
+    let a = null;
     try {
-      o = ee(e, t);
+      a = ee(e, t);
     } catch {
     }
-    if ((Array.isArray(o == null ? void 0 : o.prompts) ? o.prompts : []).some((s) => (s == null ? void 0 : s.identifier) && !Fv.has(s.identifier))) return o;
+    if ((Array.isArray(a == null ? void 0 : a.prompts) ? a.prompts : []).some((c) => (c == null ? void 0 : c.identifier) && !Fv.has(c.identifier))) return a;
+    if (!o && ((s = (i = H.API).getLoadedPresetName) == null ? void 0 : s.call(i)) === t) {
+      o = !0;
+      const c = window.jQuery ?? window.$;
+      c == null || c("#update_oai_preset").trigger("click");
+    }
     if (Date.now() >= r)
       throw new Error(`预设“${t}”里一直没读到条目，已停止缝合，没有改动任何内容`);
-    await new Promise((s) => setTimeout(s, 500));
+    await new Promise((c) => setTimeout(c, 500));
   }
 }
 async function Rg(e, t, n, r = {}) {
