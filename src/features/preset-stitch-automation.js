@@ -417,7 +417,7 @@ async function runVersionMove(targetName, targetData, candidates, toastPrefix) {
   const result = applyVersionMove(picked.data, targetData, picked.plan, choice);
   if (window.toastr) {
     window.toastr.success(
-      `${toastPrefix}已从「${picked.name}」搬过来 ${result.moved} 条${result.copied ? `，另缝了 ${result.copied} 条你的旧版（关着）` : ''}`,
+      `${toastPrefix}已从「${picked.name}」搬过来 ${result.moved} 条${result.copied ? `，另缝了 ${result.copied} 条你的旧版（关着）` : ''}${result.overwritten ? `，覆盖了 ${result.overwritten} 条` : ''}`,
     );
   }
   return true;

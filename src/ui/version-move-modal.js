@@ -3,8 +3,10 @@ import { CommonStyles } from '../styles/common-styles.js';
 
 const MODAL_ID = 'pt-version-move-modal';
 const CHANGED_COLOR = '#e8912d';
+const OVERWRITE_COLOR = '#d64545';
+const COPY_COLOR = '#2e9e5b';
 
-// candidates: [{ name, plan }]，第一个是默认来源。返回 { sourceName, mineIds, useMineIds } 或 null（跳过）
+// candidates: [{ name, plan }]，第一个是默认来源。返回 { sourceName, mineIds, useMineIds, overwriteIds } 或 null（跳过）
 function showVersionMoveModal({ targetName, candidates }) {
   const $ = getJQuery();
   const parentWindow = getParentWindow();
@@ -74,15 +76,26 @@ function showVersionMoveModal({ targetName, candidates }) {
         ),
       )
       .join('');
+    const box = (id, kind, color) => `
+      <label style="flex: none; width: 44px; display: flex; justify-content: center; padding: 4px 0;">
+        <input type="checkbox" class="pt-vm-changed pt-vm-${kind}" data-id="${escapeAttr(id)}" style="accent-color: ${color}; width: 18px; height: 18px; box-shadow: 0 0 0 2px ${color}; border-radius: 3px;">
+      </label>`;
     const changedRows = plan.changed
-      .map(c =>
-        row(
-          `class="pt-vm-changed" data-id="${escapeAttr(c.identifier)}"`,
-          `<span style="color:${CHANGED_COLOR}; font-weight:700;">${escapeHtml(c.name)}</span> <span style="opacity:.7">勾上＝把我的缝到下面</span>`,
-          `border-left: 3px solid ${CHANGED_COLOR}; padding-left: 8px;`,
-        ),
+      .map(
+        c => `
+        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px dashed ${vars.borderColor};">
+          <span style="flex: 1; min-width: 0; overflow-wrap: anywhere; color:${CHANGED_COLOR}; font-weight:700;">${escapeHtml(c.name)}</span>
+          ${box(c.identifier, 'overwrite', OVERWRITE_COLOR)}${box(c.identifier, 'copy', COPY_COLOR)}
+        </div>`,
       )
       .join('');
+    const changedHead = plan.changed.length
+      ? `<div style="display: flex; align-items: center; gap: 4px; font-size: calc(var(--pt-font-size) * 0.75); font-weight: 700;">
+          <span style="flex: 1;"></span>
+          <a href="#" class="pt-vm-col" data-kind="overwrite" style="flex: none; width: 44px; text-align: center; color:${OVERWRITE_COLOR};">覆盖</a>
+          <a href="#" class="pt-vm-col" data-kind="copy" style="flex: none; width: 44px; text-align: center; color:${COPY_COLOR};">+缝</a>
+        </div>`
+      : '';
 
     $('#pt-vm-body', doc).html(`
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
@@ -94,7 +107,10 @@ function showVersionMoveModal({ targetName, candidates }) {
       <div style="font-size: calc(var(--pt-font-size) * 0.75); opacity: 0.7; margin-bottom: 4px;">作者在新版删掉的条目也会出现在这里，不想要就取消勾</div>
       ${mineRows || '<div style="opacity:.6">没有</div>'}
       <div style="margin-top: 14px; margin-bottom: 4px;"><b style="color:${CHANGED_COLOR};">两边内容不一样 ${plan.changed.length} 条</b></div>
-      <div style="font-size: calc(var(--pt-font-size) * 0.75); opacity: 0.7; margin-bottom: 4px;">可能是你改过，也可能是作者这版更新了。作者那条不动；勾上就把你旧版那条复制一份缝到它正下方，名字带“（缝）”，先关着，开哪条你自己选</div>
+      <div style="font-size: calc(var(--pt-font-size) * 0.8125); line-height: 1.5; margin-bottom: 6px;">
+        <span style="color:${OVERWRITE_COLOR}; font-weight:700;">红色</span>是把旧版条目覆盖到新预设对应条目，<span style="color:${COPY_COLOR}; font-weight:700;">绿色</span>是在对应条目下方移植一个条目，不选择就是使用新版条目
+      </div>
+      ${changedHead}
       ${changedRows || '<div style="opacity:.6">没有</div>'}
     `);
   }
@@ -118,11 +134,31 @@ function showVersionMoveModal({ targetName, candidates }) {
       e.preventDefault();
       $('.pt-vm-mine', doc).prop('checked', this.id === 'pt-vm-all');
     });
+    $modal.on('change', '.pt-vm-changed', function () {
+      if (!this.checked) return;
+      const other = this.classList.contains('pt-vm-overwrite') ? 'copy' : 'overwrite';
+      $(`.pt-vm-${other}`, doc).filter((_, el) => el.dataset.id === this.dataset.id).prop('checked', false);
+    });
+    $modal.on('click', '.pt-vm-col', function (e) {
+      e.preventDefault();
+      const kind = this.dataset.kind;
+      const $col = $(`.pt-vm-${kind}`, doc);
+      const turnOn = $col.filter(':not(:checked)').length > 0;
+      $col.each((_, el) => {
+        el.checked = turnOn;
+        if (turnOn) $(el).trigger('change');
+      });
+    });
     $modal.on('click', '#pt-vm-skip', () => settle(null));
     $modal.on('click', '#pt-vm-confirm', () => {
       const index = Number($('#pt-vm-source', doc).val()) || 0;
       const ids = selector => $(selector, doc).filter(':checked').map((_, el) => String(el.dataset.id)).get();
-      settle({ sourceName: candidates[index].name, mineIds: ids('.pt-vm-mine'), useMineIds: ids('.pt-vm-changed') });
+      settle({
+        sourceName: candidates[index].name,
+        mineIds: ids('.pt-vm-mine'),
+        useMineIds: ids('.pt-vm-copy'),
+        overwriteIds: ids('.pt-vm-overwrite'),
+      });
     });
   });
 }

@@ -1,4 +1,4 @@
-// 跑法：node tests/version-move.check.mjs —— 验版本搬迁：旧版自有条目搬进新版、打缝合记号、内容不同的勾上才复制一份缝到下面
+// 跑法：node tests/version-move.check.mjs —— 验版本搬迁：旧版自有条目搬进新版、打缝合记号、内容不同的选缝一份才复制到下面、选覆盖只换字
 import assert from 'node:assert/strict';
 const { planVersionMove, applyVersionMove } = await import('../src/preset/version-move.js');
 
@@ -52,4 +52,14 @@ assert.equal(r.copied, 1);
 const newV2 = fresh();
 applyVersionMove(oldV, newV2, planVersionMove(oldV, newV2), { mineIds: ['m1'], useMineIds: [] });
 assert.deepEqual(newV2.prompts.map(x => x.name).sort(), ['Main', '作者新加', '我的文风', '收尾', '破甲', '起笔'].sort(), '不勾的什么都不加');
+
+const newV3 = fresh();
+const r3 = applyVersionMove(oldV, newV3, planVersionMove(oldV, newV3), { mineIds: [], overwriteIds: ['a2'] });
+const a2 = newV3.prompts.find(x => x.identifier === 'a2');
+assert.equal(a2.content, '我改过的破甲', '覆盖换成我的字');
+assert.equal(a2.name, '破甲', '覆盖不改名');
+assert.equal(newV3.prompts.length, 5, '覆盖不多出条目');
+assert.deepEqual(newV3.prompt_order[0].order.map(o => o.identifier), ['main', 'a1', 'a2', 'a3', 'a4'], '覆盖不挪位置');
+assert.equal(newV3.extensions.baibaiToolkit.presetPromptGroups.prompts.a2.groupId, 'n-top', '覆盖不换组');
+assert.equal(r3.overwritten, 1);
 console.log('version-move: 过');

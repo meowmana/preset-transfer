@@ -76,6 +76,7 @@ function stripStitchMeta(prompt) {
 function applyVersionMove(oldData, newData, plan, choices = {}) {
   const mineIds = new Set(choices.mineIds ?? plan.mine.map(m => m.identifier));
   const useMineIds = new Set(choices.useMineIds ?? []);
+  const overwriteIds = new Set(choices.overwriteIds ?? []);
   const now = new Date().toISOString();
 
   const source = cloneDeep(oldData);
@@ -90,15 +91,24 @@ function applyVersionMove(oldData, newData, plan, choices = {}) {
     moved = applyStitchPatch(newData, extractStitchPatch(source));
   }
 
-  // 两边都有、内容不同的，勾上的把旧版那份复制一条缝到作者那条正下方，先关着，开哪条用户自己选
+  // 两边都有、内容不同的：缝一份＝把旧版那份复制一条缝到作者那条正下方，先关着；覆盖＝作者那条只换内容
   let copied = 0;
+  let overwritten = 0;
   const oldById = new Map((oldData.prompts ?? []).filter(p => p?.identifier).map(p => [p.identifier, p]));
   const order = (newData.prompt_order ?? []).find(o => o && o.character_id === DUMMY_CHARACTER_ID);
   const store = newData.extensions?.baibaiToolkit?.presetPromptGroups;
   for (const item of plan.changed) {
-    if (!useMineIds.has(item.identifier)) continue;
     const mineVersion = oldById.get(item.identifier);
     if (!mineVersion) continue;
+    if (overwriteIds.has(item.identifier)) {
+      const target = newData.prompts.find(x => x?.identifier === item.targetIdentifier);
+      if (target) {
+        target.content = mineVersion.content;
+        overwritten += 1;
+      }
+      continue;
+    }
+    if (!useMineIds.has(item.identifier)) continue;
     const copy = assignNewStitchMeta(stripStitchMeta(cloneDeep(mineVersion)), { now });
     copy.identifier = ensureUniqueIdentifier(newData, `${item.identifier}-feng`);
     copy.name = `${item.name}（缝）`;
@@ -112,7 +122,7 @@ function applyVersionMove(oldData, newData, plan, choices = {}) {
     copied += 1;
   }
 
-  return { moved: moved.addedPrompts + moved.updatedPrompts, grouped: moved.groupedStitches ?? 0, copied };
+  return { moved: moved.addedPrompts + moved.updatedPrompts, grouped: moved.groupedStitches ?? 0, copied, overwritten };
 }
 
 export { planVersionMove, applyVersionMove };
