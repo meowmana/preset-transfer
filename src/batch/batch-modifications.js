@@ -9,7 +9,7 @@ function getSelectedEntriesForSide(side) {
   $(`#${side}-entries-list .entry-checkbox:checked`).each(function () {
     const $entryItem = $(this).closest('.entry-item');
     const index = parseInt($entryItem.data('index'));
-    const identifier = $entryItem.data('identifier');
+    const identifier = $entryItem.attr('data-identifier');
 
     // 根据侧获取对应的条目数据
     let entries;

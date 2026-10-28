@@ -38,7 +38,7 @@ function markDragSources(side, identifiers) {
     .find('.entry-item')
     .each(function () {
       const $item = $(this);
-      const id = $item.data('identifier');
+      const id = $item.attr('data-identifier');
       if (id && idSet.has(id)) {
         $item.addClass('pt-drag-source');
       }

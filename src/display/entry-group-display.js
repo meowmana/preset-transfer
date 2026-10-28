@@ -313,7 +313,7 @@ export function getSelectedGroups(side, $listContainer) {
     $container.find('.entry-item').each(function () {
       const $item = $(this);
       const index = parseInt($item.data('index'));
-      const identifier = $item.data('identifier');
+      const identifier = $item.attr('data-identifier');
       entries.push({ index, identifier });
     });
 

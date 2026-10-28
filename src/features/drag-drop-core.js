@@ -26,7 +26,7 @@ function resolveEntryFromItem(side, $item) {
   const entries = getEntriesForSide(side);
   if (!Array.isArray(entries) || !entries.length) return null;
 
-  const identifier = $item.data('identifier');
+  const identifier = $item.attr('data-identifier');
   const index = parseInt($item.data('index'), 10);
 
   if (identifier) {
@@ -119,7 +119,7 @@ function computeTransferTargetIndex(toSide, target) {
 
   if (!presetName) return null;
 
-  const identifier = $ref.data('identifier');
+  const identifier = $ref.attr('data-identifier');
   const fallbackIndex = parseInt($ref.data('index'), 10);
 
   const fullList = getTargetPromptsList(presetName, 'include_disabled');
@@ -166,7 +166,7 @@ async function commitDrag() {
     } else {
       const $ = getJQuery();
       const $ref = $(target.referenceElement);
-      targetIdentifier = $ref.data('identifier') || null;
+      targetIdentifier = $ref.attr('data-identifier') || null;
       targetIndex = null;
     }
 
@@ -214,7 +214,7 @@ async function commitDrag() {
     toSide,
     selectedEntries: dragEntries,
     targetGroupId: String($(target.referenceElement).closest('.pt-transfer-group-container').attr('data-group-id') ?? '').trim(),
-    targetIdentifier: String($(target.referenceElement).data('identifier') ?? '').trim(),
+    targetIdentifier: String($(target.referenceElement).attr('data-identifier') ?? '').trim(),
   };
 
   await executeTransferToPosition(apiInfo, fromSide, toSide, positionArg);

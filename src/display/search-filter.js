@@ -44,7 +44,7 @@ function filterDualEntries(searchTerm) {
     }
 
     let contentText = '';
-    const identifier = $item.data('identifier');
+    const identifier = $item.attr('data-identifier');
     if (identifier && entriesRef.length) {
       const entry = entriesRef.find(e => e && e.identifier === identifier);
       contentText = (entry && entry.content ? entry.content : '');
@@ -98,7 +98,7 @@ function filterSideEntries(side, searchTerm) {
 
     const name = ($item.find('.entry-name').text() || '').toLowerCase();
 
-    const identifier = $item.data('identifier');
+    const identifier = $item.attr('data-identifier');
     const entriesRef =
       side === 'left'
         ? window.leftEntries || []
@@ -171,7 +171,7 @@ function clearSearchResults(side = null) {
 // Scroll to the original position of an entry that appeared in search results.
 function jumpToOriginalPosition($searchItem) {
   const $ = getJQuery();
-  const identifier = $searchItem.data('identifier');
+  const identifier = $searchItem.attr('data-identifier');
   if (!identifier) return;
 
   let listSelector = '';
@@ -190,7 +190,7 @@ function jumpToOriginalPosition($searchItem) {
   const $originalItem = $allItems
     .filter(function () {
       const $item = $(this);
-      return $item.data('identifier') === identifier && !$item.hasClass('position-item');
+      return $item.attr('data-identifier') === identifier && !$item.hasClass('position-item');
     })
     .first();
 
@@ -315,7 +315,7 @@ function toggleNewEntries(apiInfo, side) {
       const $item = $(this);
       if ($item.hasClass('position-item')) return;
 
-      const identifier = $item.data('identifier');
+      const identifier = $item.attr('data-identifier');
       if (!identifier || !newEntryIdentifiers.has(identifier)) {
         $item.hide();
         return;

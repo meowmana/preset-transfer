@@ -322,7 +322,7 @@ function displayEntries(entries, side, options = {}) {
     const isMap = ids instanceof Map;
     entriesList.find('.pt-favorite-toggle').each(function () {
       const $btn = $(this);
-      const identifier = String($btn.data('entry-identifier') ?? '').trim();
+      const identifier = String($btn.attr('data-entry-identifier') ?? '').trim();
       if (!identifier) return;
       if (isMap) {
         const container = String($btn.data('entry-container') ?? '').trim();
@@ -429,7 +429,9 @@ function displayEntries(entries, side, options = {}) {
       }
       startIndex = endIndex;
       if (startIndex < entries.length) {
-        requestAnimationFrame(renderChunk);
+        // 预设面板要一次画完再套分组，分批画会先露出半截平铺列表
+        if (shouldPreserveTransferViewport) renderChunk();
+        else requestAnimationFrame(renderChunk);
         return;
       }
 
@@ -568,7 +570,7 @@ function displayEntries(entries, side, options = {}) {
 
       const $btn = parentJQuery(this);
       const entrySide = String($btn.data('entry-side') ?? '').trim();
-      const identifier = String($btn.data('entry-identifier') ?? '').trim();
+      const identifier = String($btn.attr('data-entry-identifier') ?? '').trim();
       const adapter = getActiveTransferAdapter();
       let resolvedContainer = resolveContainerName(entrySide);
       if (entrySide === 'favorites') {
@@ -622,7 +624,7 @@ function displayEntries(entries, side, options = {}) {
         // 转移模式下的目标条目点击逻辑
         if (window.transferMode && (!window.transferMode.toSide || window.transferMode.toSide === itemSide || window.transferMode.toSide === 'any')) {
           const index = parseInt($item.data('index'));
-          const identifier = $item.data('identifier');
+          const identifier = $item.attr('data-identifier');
           const adapter = getActiveTransferAdapter();
           const targetGroupId = String($item.closest('.pt-transfer-group-container').attr('data-group-id') ?? '').trim();
 
@@ -650,7 +652,7 @@ function displayEntries(entries, side, options = {}) {
         // 新建模式下的目标条目点击逻辑
         if (window.newEntryMode && window.newEntryMode.side === itemSide) {
           const index = parseInt($item.data('index'));
-          const identifier = $item.data('identifier');
+          const identifier = $item.attr('data-identifier');
           const targetGroupId = String($item.closest('.pt-transfer-group-container').attr('data-group-id') ?? '').trim();
           const targetPreset = itemSide === 'single' ? window.singlePresetName : $(`#${itemSide}-preset`).val();
           const fullList = getTargetPromptsList(targetPreset, 'include_disabled');
@@ -664,7 +666,7 @@ function displayEntries(entries, side, options = {}) {
         // 移动模式下的目标条目点击逻辑
         if (window.moveMode && window.moveMode.side === itemSide) {
           const index = parseInt($item.data('index'));
-          const identifier = $item.data('identifier');
+          const identifier = $item.attr('data-identifier');
           const targetGroupId = String($item.closest('.pt-transfer-group-container').attr('data-group-id') ?? '').trim();
           executeMoveToPosition(window.moveMode.apiInfo, itemSide, identifier, index, { targetGroupId });
           return;
@@ -708,7 +710,7 @@ function displayEntries(entries, side, options = {}) {
 
       // 计算“真实索引”（包含被隐藏的禁用项）
       const $entryItem = $btn.closest('.entry-item');
-      const identifier = $entryItem.data('identifier');
+      const identifier = $entryItem.attr('data-identifier');
       const targetGroupId = String($entryItem.closest('.pt-transfer-group-container').attr('data-group-id') ?? '').trim();
       const fullList = getTargetPromptsList(presetName, 'include_disabled');
       const realIndex = identifier ? fullList.findIndex(e => e.identifier === identifier) : entryIndex;
@@ -798,7 +800,7 @@ function getSelectedEntries(side, options = {}) {
   // 优先使用 identifier 匹配，fallback 到 index，保持与旧单文件版本一致
   $(`${listSelector} .entry-checkbox:checked`).each(function () {
     const $item = $(this).closest('.entry-item');
-    const identifier = $item.data('identifier');
+    const identifier = $item.attr('data-identifier');
     const index = parseInt($item.data('index'));
 
     if (identifier && entries) {

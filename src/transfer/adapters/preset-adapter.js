@@ -61,10 +61,11 @@ async function insertEntry(apiInfo, targetPreset, newEntry, insertPosition, auto
         characterPromptOrder.order.push(newOrderEntry);
     }
 
-    const baibaiGroup = tagBaibaiGroup(targetData, [stitchedPrompt.identifier], { targetGroupId, targetIdentifier });
+    tagBaibaiGroup(targetData, [stitchedPrompt.identifier], { targetGroupId, targetIdentifier });
     await apiInfo.presetManager.savePreset(targetPreset, targetData);
 
-    if (baibaiGroup === null && (targetIdentifier || targetGroupId)) {
+    // 预设里同时存着本工具自己的分组时也要登记，不然面板按本工具分组显示会把它画在组外；没有本工具分组时这一步什么都不做
+    if (targetIdentifier || targetGroupId) {
         const orderedIdentifiers = characterPromptOrder.order.map(entry => String(entry?.identifier ?? '').trim()).filter(Boolean);
         await reassignPresetGroupingMembers(
             targetPreset,
@@ -76,7 +77,6 @@ async function insertEntry(apiInfo, targetPreset, newEntry, insertPosition, auto
 }
 
 // 目标用柏宝箱分组时，把插进来的条目登记进柏宝箱的组：优先点中的组，其次上面那条所在的组。
-// 返回 null 表示目标没用柏宝箱；返回 '' 表示没找到组
 function tagBaibaiGroup(presetData, identifiers, { targetGroupId, targetIdentifier } = {}) {
     const store = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
     if (!store || !Array.isArray(store.groups)) return null;
@@ -217,12 +217,12 @@ async function transferEntries(
         }
     }
 
-    const baibaiGroup = insertedOrderEntries.length > 0 && (targetIdentifier || targetGroupId)
-        ? tagBaibaiGroup(targetData, insertedOrderEntries.map(entry => entry.identifier), { targetGroupId, targetIdentifier })
-        : null;
+    if (insertedOrderEntries.length > 0 && (targetIdentifier || targetGroupId)) {
+        tagBaibaiGroup(targetData, insertedOrderEntries.map(entry => entry.identifier), { targetGroupId, targetIdentifier });
+    }
     await apiInfo.presetManager.savePreset(targetPreset, targetData);
 
-    if (baibaiGroup === null && (targetIdentifier || targetGroupId) && insertedOrderEntries.length > 0) {
+    if ((targetIdentifier || targetGroupId) && insertedOrderEntries.length > 0) {
         const orderedIdentifiers = characterPromptOrder.order.map(entry => String(entry?.identifier ?? '').trim()).filter(Boolean);
         await reassignPresetGroupingMembers(
             targetPreset,
