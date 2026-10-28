@@ -23,3 +23,18 @@ const getOrder = new Function(`${ord.slice(oi, ord.indexOf('\n}\n', oi) + 2)} re
 const p = { prompt_order: [{ character_id: 100000, order: [{ identifier: 'a', enabled: true }, { identifier: 'b', enabled: false }] }] };
 assert.deepEqual(getOrder(p).order.map((o) => o.identifier), ['a', 'b']);
 console.log('stitch-guard: 过');
+
+const wi = auto.indexOf('async function waitForPresetWithEntries(');
+const ids2 = auto.slice(auto.indexOf('const BUILTIN_PROMPT_IDS'), auto.indexOf(']);', auto.indexOf('const BUILTIN_PROMPT_IDS')) + 3);
+const states = [{}, {}, { prompts: [{ identifier: 'main' }, { identifier: 'author-1' }] }];
+let reads = 0;
+const wait = new Function('getPresetDataFromManager', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(
+  () => states[Math.min(reads++, states.length - 1)],
+);
+const got = await wait({}, 'x', 5000);
+assert.equal(got.prompts.length, 2);
+assert.ok(reads >= 3);
+const waitEmpty = new Function('getPresetDataFromManager', `${ids2}\n${auto.slice(wi, auto.indexOf('\n}\n', wi) + 2)} return waitForPresetWithEntries;`)(() => ({}));
+await assert.rejects(waitEmpty({}, 'x', 600), /一直没读到条目/);
+assert.equal((auto.match(/await waitForPresetWithEntries\(apiInfo, targetPresetName\)/g) || []).length, 2);
+console.log('stitch-guard 改名空窗: 过');

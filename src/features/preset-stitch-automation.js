@@ -251,6 +251,30 @@ function confirmStitchMigration(message) {
   return true;
 }
 
+const BUILTIN_PROMPT_IDS = new Set([
+  'main', 'nsfw', 'dialogueExamples', 'jailbreak', 'chatHistory', 'worldInfoAfter', 'worldInfoBefore',
+  'enhanceDefinitions', 'charDescription', 'charPersonality', 'scenario', 'personaDescription',
+]);
+
+// 酒馆给 openai 预设改名时先在新名字下存一份空对象，再补存完整内容；轮询可能正好撞上中间那份空的
+async function waitForPresetWithEntries(apiInfo, presetName, timeoutMs = 15000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    let data = null;
+    try {
+      data = getPresetDataFromManager(apiInfo, presetName);
+    } catch {
+      /* 新名字可能还没进列表 */
+    }
+    const prompts = Array.isArray(data?.prompts) ? data.prompts : [];
+    if (prompts.some(p => p?.identifier && !BUILTIN_PROMPT_IDS.has(p.identifier))) return data;
+    if (Date.now() >= deadline) {
+      throw new Error(`预设“${presetName}”里一直没读到条目，已停止缝合，没有改动任何内容`);
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+}
+
 async function applyStitchesToData(apiInfo, sourcePresetName, targetData, options = {}) {
   const { toastPrefix = '', showSuccessToast = true, showNoOpToast = false, insertedEnabled } = options;
 
@@ -280,13 +304,12 @@ async function applyStitchesPatchToPreset(apiInfo, patch, targetPresetName, opti
   const { switchToTarget = false, toastPrefix = '', showSuccessToast = true, showNoOpToast = false, insertedEnabled } =
     options;
 
-  const targetData = getPresetDataFromManager(apiInfo, targetPresetName);
   const stitchCount = countPatchStitches(patch);
-
   if (stitchCount === 0) {
     if (showNoOpToast && window.toastr) window.toastr.info(`${toastPrefix}未检测到可迁移的缝合条目`);
     return { stitchCount: 0, applied: null };
   }
+  const targetData = await waitForPresetWithEntries(apiInfo, targetPresetName);
 
   const applied = applyStitchPatch(targetData, patch, { insertedEnabled });
 
@@ -312,7 +335,7 @@ async function applyStitchesPatchToPreset(apiInfo, patch, targetPresetName, opti
 async function migrateStitches(apiInfo, sourcePresetName, targetPresetName, options = {}) {
   const { switchToTarget = false, toastPrefix = '', insertedEnabled } = options;
 
-  const targetData = getPresetDataFromManager(apiInfo, targetPresetName);
+  const targetData = await waitForPresetWithEntries(apiInfo, targetPresetName);
   const result = await applyStitchesToData(apiInfo, sourcePresetName, targetData, {
     toastPrefix,
     showSuccessToast: true,
