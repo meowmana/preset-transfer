@@ -14,6 +14,8 @@ import {
   syncStitchPatchSnapshot,
 } from './preset-stitch-state.js';
 import { showPresetGitUpdateModal } from '../ui/preset-git-update-modal.js';
+import { showVersionMoveModal } from '../ui/version-move-modal.js';
+import { applyVersionMove, planVersionMove } from '../preset/version-move.js';
 import { getPresetGitSource, setPresetGitSource } from './preset-stitch-settings.js';
 import {
   compareVersions,
@@ -381,6 +383,46 @@ function findLocalPresetByBaseAndVersion(apiInfo, baseNormalized, version) {
   return null;
 }
 
+function listOlderVersionNames(apiInfo, targetName) {
+  const names = Array.isArray(apiInfo?.presetNames) ? apiInfo.presetNames : [];
+  return names.filter(name => name && name !== targetName && arePresetsSameDifferentVersion(targetName, name).match);
+}
+
+// 同系列的旧版，按“带缝合记号的优先、再版本号高的优先”排，没有可搬内容的不列
+function findOlderVersionCandidates(apiInfo, targetName, targetData) {
+  const list = [];
+  for (const name of listOlderVersionNames(apiInfo, targetName)) {
+    let data;
+    try {
+      data = getPresetDataFromManager(apiInfo, name);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(data?.prompts) || data.prompts.length === 0) continue;
+    const plan = planVersionMove(data, targetData);
+    if (plan.mine.length === 0 && plan.changed.length === 0) continue;
+    list.push({ name, data, plan, hasStitch: hasAnyStitchMeta(data), version: extractPresetVersionInfo(name).version });
+  }
+  list.sort((a, b) => Number(b.hasStitch) - Number(a.hasStitch) || compareVersions(b.version, a.version));
+  return list;
+}
+
+async function runVersionMove(targetName, targetData, candidates, toastPrefix) {
+  const choice = await showVersionMoveModal({ targetName, candidates });
+  if (!choice) {
+    if (window.toastr) window.toastr.info(`${toastPrefix}已跳过版本搬迁`);
+    return false;
+  }
+  const picked = candidates.find(c => c.name === choice.sourceName) ?? candidates[0];
+  const result = applyVersionMove(picked.data, targetData, picked.plan, choice);
+  if (window.toastr) {
+    window.toastr.success(
+      `${toastPrefix}已从「${picked.name}」搬过来 ${result.moved} 条${result.copied ? `，另缝了 ${result.copied} 条你的旧版（关着）` : ''}`,
+    );
+  }
+  return true;
+}
+
 async function maybeAutoMigrateOnImport(apiInfo, newPresetName) {
   const settings = loadAutomationSettings();
   const enabled = settings.presetAutoMigrateOnImportEnabled === true;
@@ -390,6 +432,17 @@ async function maybeAutoMigrateOnImport(apiInfo, newPresetName) {
 
   const info = extractPresetVersionInfo(newPresetName);
   if (!info?.version) return false;
+
+  if (listOlderVersionNames(apiInfo, newPresetName).length > 0) {
+    const targetData = await waitForPresetWithEntries(apiInfo, newPresetName);
+    const candidates = findOlderVersionCandidates(apiInfo, newPresetName, targetData);
+    if (candidates.length > 0) {
+      if (await runVersionMove(newPresetName, targetData, candidates, '[导入自动] ')) {
+        await apiInfo.presetManager.savePreset(newPresetName, targetData);
+      }
+      return true;
+    }
+  }
 
   const snapshot = await getUsableSnapshotPatchForPresetName(newPresetName);
   if (snapshot?.patch) {
@@ -704,6 +757,15 @@ async function handleOaiPresetImportReady(payload) {
   state.importInProgress.add(presetName);
 
   try {
+    const versionCandidates = findOlderVersionCandidates(apiInfo, presetName, data);
+    if (versionCandidates.length > 0) {
+      if (await runVersionMove(presetName, data, versionCandidates, '[导入自动] ')) {
+        recordStitchPatchSnapshot(presetName, data, { force: true });
+      }
+      markImportProcessed(presetName);
+      return;
+    }
+
     const snapshot = await getUsableSnapshotPatchForPresetName(presetName);
     const patch = snapshot?.patch ?? null;
 

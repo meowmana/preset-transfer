@@ -165,26 +165,33 @@ function getBaibaiGroupName(store, identifier) {
   return group ? String(group.name ?? '').trim() : '';
 }
 
-// 缝进来的条目登记进柏宝箱的组：先找源预设里同名的组，找不到就跟正上方那条（顶上没有就跟正下方那条）
-function tagStitchesIntoBaibaiGroups(targetData, stitchGroupNames) {
+// 缝进来的条目登记进柏宝箱的组：先找同名组；源预设里整组都是缝合条目的就照原样建组；否则跟正上方那条（顶上没有就跟正下方那条）
+function tagStitchesIntoBaibaiGroups(targetData, stitchGroups) {
   const store = readBaibaiStore(targetData);
-  if (!store || stitchGroupNames.size === 0) return 0;
+  if (!store || stitchGroups.size === 0) return 0;
 
-  const groupIds = new Set(store.groups.map(g => String(g?.id ?? '')).filter(Boolean));
+  const groupIdByName = name => String(store.groups.find(g => String(g?.name ?? '').trim() === name)?.id ?? '');
   const groupIdOf = identifier => {
     const id = String(store.prompts[identifier]?.groupId ?? '');
-    return groupIds.has(id) ? id : '';
+    return id && store.groups.some(g => String(g?.id ?? '') === id) ? id : '';
+  };
+  const createGroup = name => {
+    const maxOrder = store.groups.reduce((m, g) => Math.max(m, Number(g?.order) || 0), -1);
+    const id = `pt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+    store.groups.push({ id, name, order: maxOrder + 1, collapsed: false, enabled: true });
+    return id;
   };
   const order = (getDummyCharacterPromptOrder(targetData)?.order ?? []).map(o => o?.identifier).filter(Boolean);
 
   let tagged = 0;
   order.forEach((identifier, index) => {
-    if (!stitchGroupNames.has(identifier)) return;
-    const name = stitchGroupNames.get(identifier);
-    let groupId = name ? String(store.groups.find(g => String(g?.name ?? '').trim() === name)?.id ?? '') : '';
+    if (!stitchGroups.has(identifier)) return;
+    const { name, ownGroup } = stitchGroups.get(identifier);
+    let groupId = name ? groupIdByName(name) : '';
+    if (!groupId && name && ownGroup) groupId = createGroup(name);
     if (!groupId && index > 0) groupId = groupIdOf(order[index - 1]);
     if (!groupId && index === 0) {
-      const next = order.find(id => !stitchGroupNames.has(id));
+      const next = order.find(id => !stitchGroups.has(id));
       if (next) groupId = groupIdOf(next);
     }
     if (!groupId) return;
@@ -224,6 +231,13 @@ function extractStitchPatch(presetData, options = {}) {
   const promptMap = buildPromptMapByIdentifier(presetData);
   const baibaiStore = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
   const sourceStore = baibaiStore && Array.isArray(baibaiStore.groups) ? baibaiStore : null;
+  const groupsWithOtherEntries = new Set();
+  if (sourceStore) {
+    for (const [identifier, tag] of Object.entries(sourceStore.prompts ?? {})) {
+      const p = promptMap.get(identifier);
+      if (tag?.groupId && p && !isStitchEntry(p)) groupsWithOtherEntries.add(String(tag.groupId));
+    }
+  }
   const order = getDummyCharacterPromptOrder(presetData);
   const orderItems = Array.isArray(order?.order) ? order.order : [];
 
@@ -276,6 +290,7 @@ function extractStitchPatch(presetData, options = {}) {
         prompt: compressForSnapshot ? compressPromptForSnapshot(prompt) : cloneDeep(prompt),
         enabled: Boolean(item?.enabled),
         groupName: getBaibaiGroupName(sourceStore, identifier),
+        groupOnlyStitches: !groupsWithOtherEntries.has(String(sourceStore?.prompts?.[identifier]?.groupId ?? '')),
       });
       currentRun.endSourceIndex = i;
       continue;
@@ -404,7 +419,7 @@ function applyStitchPatch(targetData, patch, options = {}) {
 
   const matcher = createAnchorMatcher(targetData);
 
-  const stitchGroupNames = new Map();
+  const stitchGroups = new Map();
   let addedPrompts = 0;
   let updatedPrompts = 0;
   let insertedOrder = 0;
@@ -516,7 +531,10 @@ function applyStitchPatch(targetData, patch, options = {}) {
         identifier,
         enabled: typeof insertedEnabled === 'boolean' ? insertedEnabled : stitch?.enabled === true,
       });
-      stitchGroupNames.set(identifier, typeof stitch?.groupName === 'string' ? stitch.groupName.trim() : '');
+      stitchGroups.set(identifier, {
+        name: typeof stitch?.groupName === 'string' ? stitch.groupName.trim() : '',
+        ownGroup: stitch?.groupOnlyStitches === true,
+      });
       offset += 1;
       insertedOrder += 1;
     }
@@ -549,7 +567,7 @@ function applyStitchPatch(targetData, patch, options = {}) {
     });
   }
 
-  const groupedStitches = tagStitchesIntoBaibaiGroups(targetData, stitchGroupNames);
+  const groupedStitches = tagStitchesIntoBaibaiGroups(targetData, stitchGroups);
 
   return {
     addedPrompts,

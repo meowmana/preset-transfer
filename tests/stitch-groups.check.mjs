@@ -11,10 +11,10 @@ const preset = (prompts, order, groups, members) => ({
 });
 
 const source = preset(
-  [author('a1', '起笔'), author('a2', '文风甲'), stitch('s1', '🌷语言净化'), author('a3', '文风乙'), stitch('s2', '我的私货'), author('b1', '收尾'), stitch('s3', '顶头')],
-  ['s3', 'a1', 'a2', 's1', 'a3', 's2', 'b1'],
-  [{ id: 'g-open', name: '开头' }, { id: 'g-style', name: '文风' }, { id: 'g-mine', name: '只在旧版有的组' }, { id: 'g-end', name: '结尾' }],
-  { a1: 'g-open', a2: 'g-style', s1: 'g-style', a3: 'g-style', s2: 'g-mine', b1: 'g-end', s3: 'g-open' },
+  [author('a1', '起笔'), author('a2', '文风甲'), stitch('s1', '🌷语言净化'), author('a3', '文风乙'), stitch('s2', '我的私货'), author('b1', '收尾'), stitch('s3', '顶头'), stitch('s4', '收尾补丁')],
+  ['s3', 'a1', 'a2', 's1', 'a3', 's2', 'b1', 's4'],
+  [{ id: 'g-open', name: '开头' }, { id: 'g-style', name: '文风' }, { id: 'g-mine', name: '只在旧版有的组' }, { id: 'g-oldend', name: '作者改名前的组' }],
+  { a1: 'g-open', a2: 'g-style', s1: 'g-style', a3: 'g-style', s2: 'g-mine', b1: 'g-oldend', s3: 'g-open', s4: 'g-oldend' },
 );
 const target = preset(
   [author('a1', '起笔'), author('a2', '文风甲'), author('a3', '文风乙'), author('b1', '收尾')],
@@ -30,10 +30,15 @@ const tag = target.extensions.baibaiToolkit.presetPromptGroups.prompts;
 const order = target.prompt_order[0].order.map(o => o.identifier);
 const idOf = name => target.prompts.find(p => p.name === name).identifier;
 assert.equal(tag[idOf('🌷语言净化')]?.groupId, 'n-style', '同名组');
-assert.equal(tag[idOf('我的私货')]?.groupId, 'n-style', '没有同名组就跟正上方那条');
+const groups = target.extensions.baibaiToolkit.presetPromptGroups.groups;
+const mineGroup = groups.find(g => g.name === '只在旧版有的组');
+assert.ok(mineGroup, '整组都是缝合条目的组要照原样建出来');
+assert.equal(tag[idOf('我的私货')]?.groupId, mineGroup.id);
+assert.equal(tag[idOf('收尾补丁')]?.groupId, 'n-end', '组里还有作者条目（作者改了组名）就跟正上方那条');
+assert.ok(!groups.some(g => g.name === '作者改名前的组'));
 assert.equal(tag[idOf('顶头')]?.groupId, 'n-open', '同名组（顶头那条）');
-assert.equal(applied.groupedStitches, 3);
-assert.equal(target.prompts.length, 7);
+assert.equal(applied.groupedStitches, 4);
+assert.equal(target.prompts.length, 8);
 assert.deepEqual(order.slice(0, 1), [idOf('顶头')]);
 
 // 旧快照没有组名：跟正上方那条；排在最顶上就跟正下方那条
