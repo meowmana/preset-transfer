@@ -5288,9 +5288,7 @@ function Pt(e, t, n = {}) {
            <div class="entry-name" style="font-weight: 600; color: ${s.textColor}; font-size: ${l ? "calc(var(--pt-font-size) * 0.8125)" : a ? "calc(var(--pt-font-size) * 0.875)" : "calc(var(--pt-font-size) * 0.8125)"}; line-height: 1.3;">${E}</div>
        </div>
    </div>`, T = () => {
-    x && setTimeout(() => {
-      Sy(i, e, t, f), hy(i, t, f);
-    }, 100);
+    x && (Sy(i, e, t, f), hy(i, t, f));
   };
   if (e.length > 260) {
     const M = A("top", "📍 插入到顶部"), E = A("bottom", "📍 插入到底部"), z = `pt-${t}-entries-chunk-host`, R = [];

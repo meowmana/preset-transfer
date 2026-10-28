@@ -357,10 +357,9 @@ function displayEntries(entries, side, options = {}) {
 
   const applyPresetEntryGrouping = () => {
     if (!shouldPreserveTransferViewport) return;
-    setTimeout(() => {
-      applyGroupDisplayToRenderedEntries(entriesList, entries, side, containerName);
-      restoreTransferPanelScrollState(entriesList, side, containerName);
-    }, 100);
+    // 同步套分组再回滚动位置，不让浏览器画出没分组的平铺列表（手机上看着就是“跳一下”）
+    applyGroupDisplayToRenderedEntries(entriesList, entries, side, containerName);
+    restoreTransferPanelScrollState(entriesList, side, containerName);
   };
 
   if (entries.length > 260) {
