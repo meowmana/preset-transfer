@@ -3,6 +3,7 @@
 import { PT } from '../core/api-compat.js';
 import { debounce, getJQuery, getSillyTavernContext } from '../core/utils.js';
 import {
+  absorbLooseEntriesIntoGroups,
   getAllPresetGroupings,
   addPresetGrouping,
   updatePresetGrouping,
@@ -713,6 +714,10 @@ function applyGroupingToList() {
       bindTripleClickEvents();
       return;
     }
+
+    absorbLooseEntriesIntoGroups(presetName, preOrderedIdentifiers).then((absorbed) => {
+      if (absorbed.length > 0) scheduleApplyGrouping(0);
+    });
 
     const preGroupings = getAllPresetGroupings(presetName, preOrderedIdentifiers);
     const signature = computeGroupingSignature(presetName, preOrderedIdentifiers, preGroupings);

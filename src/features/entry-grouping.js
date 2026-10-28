@@ -447,6 +447,108 @@ async function persistPresetGroupings(presetName, groupings) {
   return true;
 }
 
+const PLACE_STATE_PREFIX = 'pt-eg-place:';
+
+function readPlaceState(presetName) {
+  try {
+    const raw = globalThis.localStorage?.getItem(PLACE_STATE_PREFIX + presetName);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return {
+      seen: Array.isArray(parsed?.seen) ? new Set(parsed.seen) : null,
+      loose: new Set(Array.isArray(parsed?.loose) ? parsed.loose : []),
+    };
+  } catch {
+    return { seen: null, loose: new Set() };
+  }
+}
+
+function writePlaceState(presetName, seen, loose) {
+  try {
+    globalThis.localStorage?.setItem(
+      PLACE_STATE_PREFIX + presetName,
+      JSON.stringify({ seen: seen ? Array.from(seen) : null, loose: Array.from(loose) }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+// 散在组外的条目跟着上方最近一条有组的条目进组：夹在同组成员中间的总会收；
+// 贴在组尾的只收这台设备上次没见过的新条目；用户亲手拖出组的（loose）不收。
+function planLooseEntryAbsorption(groupings, orderedIdentifiers, seen, loose) {
+  const order = normalizeMemberIdentifiers(orderedIdentifiers);
+  const owner = new Map();
+  groupings.forEach((grouping, index) => {
+    for (const identifier of normalizeMemberIdentifiers(grouping?.memberIdentifiers)) {
+      if (!owner.has(identifier)) owner.set(identifier, index);
+    }
+  });
+
+  const nextOwner = new Array(order.length).fill(-1);
+  let below = -1;
+  for (let i = order.length - 1; i >= 0; i -= 1) {
+    nextOwner[i] = below;
+    if (owner.has(order[i])) below = owner.get(order[i]);
+  }
+
+  const additions = new Map();
+  let above = -1;
+  for (let i = 0; i < order.length; i += 1) {
+    const identifier = order[i];
+    if (owner.has(identifier)) {
+      above = owner.get(identifier);
+      continue;
+    }
+    if (above < 0 || loose?.has(identifier)) continue;
+    const isNew = seen ? !seen.has(identifier) : false;
+    const sandwiched = nextOwner[i] === above;
+    if (!isNew && !sandwiched) continue;
+    if (!additions.has(above)) additions.set(above, []);
+    additions.get(above).push(identifier);
+  }
+
+  if (additions.size === 0) return { groupings, absorbed: [] };
+
+  const absorbed = [];
+  const next = groupings.map((grouping, index) => {
+    const added = additions.get(index);
+    if (!added) return grouping;
+    absorbed.push(...added);
+    return {
+      ...grouping,
+      memberIdentifiers: orderMemberIdentifiers([...grouping.memberIdentifiers, ...added], order),
+    };
+  });
+  return { groupings: next, absorbed };
+}
+
+async function absorbLooseEntriesIntoGroups(presetName, orderedIdentifiers) {
+  try {
+    const name = String(presetName ?? '').trim();
+    const order = normalizeMemberIdentifiers(orderedIdentifiers);
+    if (!name || order.length === 0) return [];
+
+    const { seen, loose } = readPlaceState(name);
+    const groupings = getWritableGroupings(getAllPresetGroupings(name, order), order);
+    if (groupings.length === 0) return [];
+    if (groupings.some((grouping) => !Array.isArray(grouping?.memberIdentifiers))) return [];
+
+    // 列表还停在上一份预设时不动手，否则会把别家的条目记成“见过”
+    const orderSet = new Set(order);
+    const members = groupings.flatMap((grouping) => normalizeMemberIdentifiers(grouping.memberIdentifiers));
+    const present = members.filter((identifier) => orderSet.has(identifier)).length;
+    if (members.length === 0 || present / members.length < 0.8) return [];
+
+    const { groupings: next, absorbed } = planLooseEntryAbsorption(groupings, order, seen, loose);
+    if (absorbed.length > 0) await persistPresetGroupings(name, next);
+    writePlaceState(name, new Set(order), loose);
+    return absorbed;
+  } catch (error) {
+    console.warn('散条目收进分组失败:', error);
+    return [];
+  }
+}
+
 async function reassignPresetGroupingMembers(presetName, entryIdentifiers, orderedIdentifiers, options = {}) {
   try {
     const name = String(presetName ?? '').trim();
@@ -467,6 +569,13 @@ async function reassignPresetGroupingMembers(presetName, entryIdentifiers, order
       ).trim()
       : '';
     const targetGroupId = requestedGroupExists ? requestedGroupId : fallbackGroupId;
+
+    const placeState = readPlaceState(name);
+    for (const identifier of movedIdentifiers) {
+      if (targetGroupId) placeState.loose.delete(identifier);
+      else placeState.loose.add(identifier);
+    }
+    writePlaceState(name, placeState.seen, placeState.loose);
 
     let changed = false;
     const nextGroupings = [];
@@ -786,6 +895,8 @@ async function removePresetGrouping(presetName, groupIndex, orderedIdentifiers) 
 }
 
 export {
+  absorbLooseEntriesIntoGroups,
+  planLooseEntryAbsorption,
   getAllPresetGroupings,
   getPresetGroupingIdForIdentifier,
   addPresetGrouping,
