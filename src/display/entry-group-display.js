@@ -1,3 +1,4 @@
+import { PT } from '../core/api-compat.js';
 import { escapeAttr, getJQuery } from '../core/utils.js';
 import { CommonStyles } from '../styles/common-styles.js';
 import { getAllPresetGroupings } from '../features/entry-grouping.js';
@@ -51,6 +52,37 @@ export function restoreTransferPanelScrollState($listContainer, side, presetName
   setTimeout(applyScroll, 80);
 }
 
+// 预设没用本工具分组时，借柏宝箱（baibaiToolkit）存在预设里的分组来显示
+export function readBaibaiGroupings(presetName) {
+  try {
+    const store = PT.API.getPreset(presetName)?.extensions?.baibaiToolkit?.presetPromptGroups;
+    const groups = Array.isArray(store?.groups) ? store.groups : [];
+    const prompts = store?.prompts && typeof store.prompts === 'object' ? store.prompts : {};
+    if (groups.length === 0) return [];
+
+    const members = new Map(groups.map((group) => [String(group?.id ?? ''), []]));
+    for (const [identifier, info] of Object.entries(prompts)) {
+      const list = members.get(String(info?.groupId ?? ''));
+      if (list) list.push(String(identifier));
+    }
+
+    return groups
+      .slice()
+      .sort((a, b) => (Number(a?.order) || 0) - (Number(b?.order) || 0))
+      .map((group) => ({
+        id: `baibai:${group.id}`,
+        name: String(group?.name ?? '').trim() || '分组',
+        memberIdentifiers: members.get(String(group?.id ?? '')) ?? [],
+        mode: 'inclusive',
+        source: 'baibai',
+      }))
+      .filter((grouping) => grouping.memberIdentifiers.length > 0);
+  } catch (error) {
+    console.warn(`读取预设 "${presetName}" 的柏宝箱分组失败:`, error);
+    return [];
+  }
+}
+
 /**
  * Build transfer-panel grouping data from the preset's entry grouping config.
  * Group membership is resolved from explicit memberIdentifiers so it stays valid
@@ -66,7 +98,8 @@ export function organizeEntriesIntoGroups(entries, side, presetName) {
   }
 
   const orderedIdentifiers = entries.map((entry) => entry.identifier).filter(Boolean);
-  const groupings = getAllPresetGroupings(presetName, orderedIdentifiers);
+  const ownGroupings = getAllPresetGroupings(presetName, orderedIdentifiers);
+  const groupings = ownGroupings && ownGroupings.length > 0 ? ownGroupings : readBaibaiGroupings(presetName);
 
   if (!groupings || groupings.length === 0) {
     return { groups: [], ungroupedEntries: entries };
