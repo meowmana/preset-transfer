@@ -19647,11 +19647,6 @@ async function qk({ adapterKey: e = "preset" } = {}) {
         </div>
     `;
   o("body").append(p);
-  try {
-    const b = d != null && d.version ? `V${String(d.version)}` : "V?", v = d != null && d.author ? ` by ${String(d.author)}` : "";
-    o("#preset-transfer-modal .version-info").html('<span class="author" id="pt-extension-version-info"></span>'), o("#pt-extension-version-info").text(`${b}${v}`);
-  } catch {
-  }
   const u = o("#preset-transfer-modal");
   u.attr("data-pt-adapter", t.id);
   let f = r;

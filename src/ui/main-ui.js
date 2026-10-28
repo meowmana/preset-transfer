@@ -312,16 +312,6 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
 
   $('body').append(modalHtml);
 
-  // Version text (based on manifest.json, so it updates automatically after a git pull + refresh).
-  try {
-    const version = extensionManifest?.version ? `V${String(extensionManifest.version)}` : 'V?';
-    const author = extensionManifest?.author ? ` by ${String(extensionManifest.author)}` : '';
-    $('#preset-transfer-modal .version-info').html('<span class="author" id="pt-extension-version-info"></span>');
-    $('#pt-extension-version-info').text(`${version}${author}`);
-  } catch {
-    // ignore
-  }
-
   const modal = $('#preset-transfer-modal');
   modal.attr('data-pt-adapter', adapter.id);
 
