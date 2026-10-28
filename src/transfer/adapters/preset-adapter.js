@@ -74,6 +74,35 @@ async function insertEntry(apiInfo, targetPreset, newEntry, insertPosition, auto
     }
 }
 
+// 目标预设用柏宝箱分组时，把整组搬来的条目也登记进柏宝箱的同名组（没有就新建）
+function addBaibaiGroups(presetData, groups) {
+    const store = presetData?.extensions?.baibaiToolkit?.presetPromptGroups;
+    if (!store || !Array.isArray(store.groups)) return false;
+    if (!store.prompts || typeof store.prompts !== 'object') store.prompts = {};
+
+    let changed = false;
+    for (const group of groups) {
+        const name = String(group?.name ?? '').trim() || '分组';
+        let target = store.groups.find(g => String(g?.name ?? '').trim() === name);
+        if (!target) {
+            const maxOrder = store.groups.reduce((m, g) => Math.max(m, Number(g?.order) || 0), -1);
+            target = {
+                id: `pt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`,
+                name,
+                order: maxOrder + 1,
+                collapsed: false,
+                enabled: true,
+            };
+            store.groups.push(target);
+        }
+        for (const identifier of group.memberIdentifiers || []) {
+            store.prompts[identifier] = { ...(store.prompts[identifier] || {}), groupId: target.id };
+            changed = true;
+        }
+    }
+    return changed;
+}
+
 async function transferEntries(
     apiInfo,
     sourcePreset,
@@ -198,6 +227,9 @@ async function transferEntries(
 
         if (preservedGroups.length > 0) {
             await preserveTransferredPresetGroups(targetPreset, preservedGroups, orderedIdentifiers);
+            if (addBaibaiGroups(targetData, preservedGroups)) {
+                await apiInfo.presetManager.savePreset(targetPreset, targetData);
+            }
         }
     }
 }
