@@ -2641,7 +2641,7 @@ function yy(e, t, n) {
     return { groups: [], ungroupedEntries: e || [] };
   if (!n)
     return { groups: [], ungroupedEntries: e };
-  const r = e.map((c) => c.identifier).filter(Boolean), o = wt(n, r), i = o && o.length > 0 ? o : by(n);
+  const r = e.map((c) => c.identifier).filter(Boolean), o = by(n), i = o.length > 0 ? o : wt(n, r);
   if (!i || i.length === 0)
     return { groups: [], ungroupedEntries: e };
   const s = [], a = /* @__PURE__ */ new Set();

@@ -52,7 +52,7 @@ export function restoreTransferPanelScrollState($listContainer, side, presetName
   setTimeout(applyScroll, 80);
 }
 
-// 预设没用本工具分组时，借柏宝箱（baibaiToolkit）存在预设里的分组来显示
+// 读柏宝箱（baibaiToolkit）存在预设里的分组
 export function readBaibaiGroupings(presetName) {
   try {
     const store = PT.API.getPreset(presetName)?.extensions?.baibaiToolkit?.presetPromptGroups;
@@ -98,8 +98,9 @@ export function organizeEntriesIntoGroups(entries, side, presetName) {
   }
 
   const orderedIdentifiers = entries.map((entry) => entry.identifier).filter(Boolean);
-  const ownGroupings = getAllPresetGroupings(presetName, orderedIdentifiers);
-  const groupings = ownGroupings && ownGroupings.length > 0 ? ownGroupings : readBaibaiGroupings(presetName);
+  // 预设里有柏宝箱分组就以它为准；本工具的旧分组常是从老版本带过来的，缺新条目
+  const baibaiGroupings = readBaibaiGroupings(presetName);
+  const groupings = baibaiGroupings.length > 0 ? baibaiGroupings : getAllPresetGroupings(presetName, orderedIdentifiers);
 
   if (!groupings || groupings.length === 0) {
     return { groups: [], ungroupedEntries: entries };
