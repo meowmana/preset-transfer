@@ -24,6 +24,26 @@ await page.evaluate(async () => {
   $('#pt-wb-stitch-dialog .pt-wb-stitch-book').val('Eldoria').trigger('change');
   await sleep(2000);
 });
+const cover = await page.evaluate(async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const panelBottom = () => document.querySelector('#pt-wb-stitch-dialog .pt-wb-stitch-panel').getBoundingClientRect().bottom;
+  const sel = document.querySelector('#single-preset, #left-preset');
+  const content = document.querySelector('#preset-transfer-modal .transfer-modal-content');
+  const openBottom = panelBottom();
+  const contentTopOpen = content.getBoundingClientRect().top;
+  document.querySelector('#pt-wb-stitch-dialog .pt-wb-stitch-fold').click();
+  await sleep(500);
+  const foldedBottom = panelBottom();
+  const contentTopFolded = content.getBoundingClientRect().top;
+  const foldedPickHidden = document.querySelector('#pt-wb-stitch-dialog .pt-wb-stitch-list').offsetParent === null;
+  document.querySelector('#pt-wb-stitch-dialog .pt-wb-stitch-fold').click();
+  await sleep(500);
+  return { openBottom, contentTopOpen, foldedBottom, contentTopFolded, foldedPickHidden, selTop: sel?.getBoundingClientRect().top };
+});
+console.log(JSON.stringify({ cover }));
+if (!(cover.contentTopOpen >= cover.openBottom && cover.foldedBottom < cover.openBottom - 100 && cover.contentTopFolded < cover.contentTopOpen && cover.foldedPickHidden)) {
+  console.error('面板盖住了下面的预设，或缩小没生效'); process.exit(1);
+}
 const stitchOne = (pickIndex, targetNth) => page.evaluate(async (pickIndex, targetNth) => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const pick = document.querySelector(`#pt-wb-stitch-dialog .pt-wb-stitch-pick[data-index="${pickIndex}"]`);

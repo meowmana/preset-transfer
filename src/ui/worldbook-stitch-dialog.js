@@ -20,7 +20,18 @@ function dialogHtml(names, pinnedNames) {
     return `
     <div id="${DIALOG_ID}" style="position:fixed;top:0;left:0;right:0;z-index:100000;display:flex;justify-content:center;padding:calc(8px + env(safe-area-inset-top)) 8px 0;box-sizing:border-box;pointer-events:none;">
       <div class="pt-wb-stitch-panel" style="pointer-events:auto;width:min(560px,100%);height:calc(var(--pt-vh, 1vh) * 50);display:flex;flex-direction:column;gap:8px;padding:12px;box-sizing:border-box;border-radius:14px;background:${opaque(vars.bgColor)};color:${vars.textColor};border:1px solid ${vars.borderColor};box-shadow:0 6px 18px rgba(0,0,0,.35);">
-        <div style="font-weight:600;">从世界书缝入</div>
+        <style>
+          #preset-transfer-modal.pt-wb-docked { align-items:flex-start !important; padding-top:calc(var(--pt-wb-dock-h, 0px) + 8px) !important; }
+          #preset-transfer-modal.pt-wb-docked .transfer-modal-content { max-height:calc(var(--pt-vh, 1vh) * 100 - var(--pt-wb-dock-h, 0px) - 32px) !important; overflow-y:auto !important; }
+          #${DIALOG_ID}.pt-wb-folded .pt-wb-stitch-panel { height:auto !important; }
+          #${DIALOG_ID}.pt-wb-folded .pt-wb-stitch-body { display:none !important; }
+          #${DIALOG_ID}:not(.pt-wb-folded) .pt-wb-stitch-mini { display:none; }
+        </style>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-weight:600;flex:1;min-width:0;">从世界书缝入<small class="pt-wb-stitch-mini" style="font-weight:400;color:${vars.tipColor};"></small></div>
+          <button type="button" class="pt-wb-stitch-fold" title="缩小" style="${btn}width:32px;height:28px;padding:0;line-height:1;font-size:1.1em;">−</button>
+        </div>
+        <div class="pt-wb-stitch-body" style="flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;">
         <select class="pt-wb-stitch-book" style="width:100%;padding:8px;border-radius:8px;background:${vars.inputBg};color:${vars.textColor};border:1px solid ${vars.inputBorder};">
           <option value="">选一本世界书</option>${options}
         </select>
@@ -33,6 +44,7 @@ function dialogHtml(names, pinnedNames) {
         <div class="pt-wb-stitch-tip" style="font-size:.8em;color:${vars.tipColor};">勾上条目，点下面预设里的条目，缝到它后面。缝完接着勾下一条。</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" class="pt-wb-stitch-cancel" style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;box-shadow:none;">缝完了，关掉</button>
+        </div>
         </div>
       </div>
     </div>`;
@@ -112,6 +124,7 @@ export async function openWorldbookStitchDialog(apiInfo) {
     const updateCount = () => {
         const n = $dialog.find('.pt-wb-stitch-pick:checked').length;
         $dialog.find('.pt-wb-stitch-count').text(entries.length ? `已选 ${n}/${entries.length}` : '');
+        $dialog.find('.pt-wb-stitch-mini').text(bookName ? ` · ${bookName} · 已选 ${n}` : '');
         arm();
     };
     const onStitched = e => {
@@ -134,6 +147,8 @@ export async function openWorldbookStitchDialog(apiInfo) {
         window.removeEventListener('pt-worldbook-stitched', onStitched);
         document.removeEventListener('click', rearmBeforeTap, true);
         disarm();
+        dockObserver?.disconnect();
+        $host.removeClass('pt-wb-docked').css('--pt-wb-dock-h', '');
         $dialog.remove();
         if (window.ptWorldbookStitchClose === close) window.ptWorldbookStitchClose = null;
     };
@@ -141,6 +156,19 @@ export async function openWorldbookStitchDialog(apiInfo) {
     window.addEventListener('pt-worldbook-stitched', onStitched);
     document.addEventListener('click', rearmBeforeTap, true);
 
+    const $panel = $dialog.find('.pt-wb-stitch-panel');
+    const syncDock = () => $host.css('--pt-wb-dock-h', `${Math.ceil($panel[0].getBoundingClientRect().bottom)}px`);
+    const dockObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(syncDock) : null;
+    if ($host.length) {
+        $host.addClass('pt-wb-docked');
+        syncDock();
+        dockObserver?.observe($panel[0]);
+    }
+    $dialog.find('.pt-wb-stitch-fold').on('click', function () {
+        const folded = $dialog.toggleClass('pt-wb-folded').hasClass('pt-wb-folded');
+        $(this).text(folded ? '+' : '−').attr('title', folded ? '展开' : '缩小');
+        syncDock();
+    });
     $dialog.find('.pt-wb-stitch-cancel').on('click', close);
     $dialog.find('.pt-wb-stitch-all').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', true); updateCount(); });
     $dialog.find('.pt-wb-stitch-none').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', false); updateCount(); });
