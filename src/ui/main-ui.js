@@ -6,6 +6,7 @@ import { bindSelect2AutoClose, initPresetListGrouping } from '../features/preset
 import { initializeEnhancedFeatures } from '../settings/enhanced-features.js';
 import { getActiveTransferAdapter, getTransferEngine, setActiveTransferAdapterKey } from '../transfer/transfer-context.js';
 import { favoriteStarIcon, gearIcon, getCurrentPresetIcon } from './icons.js';
+import { makeSearchableSelect } from './searchable-select.js';
 import { applyStyles } from './styles-application.js';
 
 async function createTransferUI({ adapterKey = 'preset' } = {}) {
@@ -566,23 +567,7 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
       };
 
       const enableSearchableSelect = (selectId) => {
-        const $select = $(selectId);
-        if (!$select.length || typeof $.fn?.select2 !== 'function') return false;
-        $select.select2({
-          width: '100%',
-          dropdownCssClass: 'pt-preset-list-dropdown',
-          language: { noResults: () => `没有匹配的${adapter.ui.containerLabel}` },
-          templateResult: (item) => (item?.id === '' ? null : item?.text),
-        });
-        $select.on('select2:open', () => {
-          setTimeout(() => {
-            const input = document.querySelector('.select2-container--open .select2-search__field');
-            if (!input) return;
-            input.placeholder = `搜索${adapter.ui.containerLabel}...`;
-            // 手机上别一打开就弹键盘挡住置顶的书，点搜索框再弹
-            if (window.matchMedia?.('(pointer: coarse)').matches) input.blur();
-          }, 0);
-        });
+        if (!makeSearchableSelect($(selectId), { label: adapter.ui.containerLabel })) return false;
         bindSelect2AutoClose('preset-transfer-modal');
         return true;
       };
