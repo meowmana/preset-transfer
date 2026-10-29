@@ -4,6 +4,7 @@ import { worldEntryToPrompt } from '../preset/worldbook-to-prompt.js';
 import { CommonStyles } from '../styles/common-styles.js';
 import { createWorldbookTransferAdapter } from '../transfer/adapters/worldbook-adapter.js';
 import { makeSearchableSelect } from './searchable-select.js';
+import { createWorldbookEditEntryModal } from '../worldbook/edit-modal.js';
 
 const DIALOG_ID = 'pt-wb-stitch-dialog';
 
@@ -62,6 +63,7 @@ function rowHtml(entry, index) {
         <span style="min-width:0;flex:1;">
           <span style="display:block;word-break:break-word;">${escapeHtml(title)} <small style="color:${vars.tipColor};">${escapeHtml(tag)}</small>${done}</span>
           <small style="display:block;color:${vars.tipColor};word-break:break-word;">${escapeHtml(preview)}</small>
+          <button type="button" class="pt-wb-stitch-edit" data-index="${index}" style="margin-top:4px;background:transparent;color:${vars.textColor};border:1px solid ${vars.borderColor};border-radius:6px;padding:2px 10px;box-shadow:none;font-size:.8em;">编辑</button>
         </span>
       </label>`;
 }
@@ -173,6 +175,31 @@ export async function openWorldbookStitchDialog(apiInfo) {
     $dialog.find('.pt-wb-stitch-all').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', true); updateCount(); });
     $dialog.find('.pt-wb-stitch-none').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', false); updateCount(); });
     $dialog.on('change', '.pt-wb-stitch-pick', updateCount);
+
+    $dialog.on('click', '.pt-wb-stitch-edit', async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const entry = entries[Number($(this).data('index'))];
+        if (!entry) return;
+        const book = bookName;
+        $dialog.hide();
+        createWorldbookEditEntryModal(apiInfo, book, entry);
+        while ($('#pt-worldbook-edit-modal').length) await new Promise(r => setTimeout(r, 300));
+        if (!$dialog.closest('body').length) return;
+        $dialog.show();
+        if (book !== bookName) return;
+        const checked = pickedIndexes();
+        const done = $dialog.find('.pt-wb-stitch-done').map((i, el) => ($(el).css('display') !== 'none' ? i : null)).get();
+        try {
+            entries = await adapter.getEntries(apiInfo, book, 'default');
+        } catch {
+            return;
+        }
+        $dialog.find('.pt-wb-stitch-list').html(entries.length ? entries.map(rowHtml).join('') : '这本是空的');
+        for (const i of checked) $dialog.find(`.pt-wb-stitch-pick[data-index="${i}"]`).prop('checked', true);
+        for (const i of done) $dialog.find('.pt-wb-stitch-done').eq(i).show();
+        updateCount();
+    });
 
     $dialog.find('.pt-wb-stitch-book').on('change', async function () {
         bookName = String($(this).val() ?? '');
