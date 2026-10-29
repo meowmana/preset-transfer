@@ -8,6 +8,7 @@ import { openWorldbookBatchEditModal } from '../worldbook/batch-edit-modal.js';
 import { performTransfer } from './core-operations.js';
 import { getPresetDataFromManager, getPromptEntries } from '../preset/preset-manager.js';
 import { ensureNewVersionFields } from '../preset/new-version-fields.js';
+import { avoidNameCollisions } from '../preset/worldbook-to-prompt.js';
 
 let worldInfoModulePromise = null;
 
@@ -297,8 +298,16 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
 
     const autoEnable = $('#auto-enable-entry').prop('checked');
 
-    // 处理多源预设情况（从收藏面板转移）
-    if (fromSide === 'favorites' && !sourceContainer) {
+    if (fromSide === 'worldbook') {
+      const targetNames = (getPresetDataFromManager(apiInfo, toPreset)?.prompts || []).map(p => p?.name);
+      const entries = avoidNameCollisions(selectedEntries, targetNames, window.transferMode?.worldbookName);
+      await performTransfer(apiInfo, toPreset, toPreset, entries, insertPosition, autoEnable, displayMode, {
+        selectedGroups: [],
+        targetGroupId,
+        targetIdentifier,
+      });
+    } else if (fromSide === 'favorites' && !sourceContainer) {
+      // 处理多源预设情况（从收藏面板转移）
       // 按源预设分组
       const entriesBySource = new Map();
       for (const entry of selectedEntries) {

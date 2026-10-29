@@ -17,6 +17,7 @@ import { updatePresetRegexStatus } from '../ui/regex-ui.js';
 import { createWorldbookBatchManageModal } from '../worldbook/batch-delete.js';
 import { loadSearchSettings, updateSearchSettings } from '../settings/search-settings.js';
 import { initDragDrop } from './drag-drop-events.js';
+import { openWorldbookStitchDialog } from '../ui/worldbook-stitch-dialog.js';
 function bindTransferEvents(apiInfo, modal) {
   const $ = getJQuery();
   const leftSelect = $('#left-preset');
@@ -370,6 +371,7 @@ function bindTransferEvents(apiInfo, modal) {
   });
 
   loadBtn.on('click', () => loadAndDisplayEntries(apiInfo));
+  $('#pt-stitch-from-worldbook').on('click', () => openWorldbookStitchDialog(getCurrentApiInfo() || apiInfo));
   $('#batch-delete-presets').on('click', async () => {
     const currentApiInfo = getCurrentApiInfo();
     if (!currentApiInfo) {

@@ -158,7 +158,8 @@ function applyStyles(isMobile, isSmallScreen, isPortrait) {
             font-size: calc(var(--pt-font-size) * 0.9375);
             min-width: 150px;
         }
-        #preset-transfer-modal #batch-delete-presets {
+        #preset-transfer-modal #batch-delete-presets,
+        #preset-transfer-modal #pt-stitch-from-worldbook {
             padding: 14px 26px;
             font-size: calc(var(--pt-font-size) * 0.9375);
             min-width: 150px;
