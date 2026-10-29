@@ -18,8 +18,8 @@ function dialogHtml(names, pinnedNames) {
         : names.map(opt).join('');
     const btn = `background:transparent;color:${vars.textColor};border:1px solid ${vars.borderColor};border-radius:8px;padding:6px 14px;box-shadow:none;font-size:inherit;`;
     return `
-    <div id="${DIALOG_ID}" style="position:fixed;top:0;left:0;width:100vw;height:calc(var(--pt-vh, 1vh) * 100);z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top)) 12px 16px;box-sizing:border-box;">
-      <div style="width:min(560px,100%);max-height:calc(var(--pt-vh, 1vh) * 100 - 40px);margin:auto 0;display:flex;flex-direction:column;gap:10px;padding:16px;box-sizing:border-box;border-radius:14px;background:${opaque(vars.bgColor)};color:${vars.textColor};border:1px solid ${vars.borderColor};">
+    <div id="${DIALOG_ID}" style="position:fixed;top:0;left:0;right:0;z-index:100000;display:flex;justify-content:center;padding:calc(8px + env(safe-area-inset-top)) 8px 0;box-sizing:border-box;pointer-events:none;">
+      <div class="pt-wb-stitch-panel" style="pointer-events:auto;width:min(560px,100%);height:calc(var(--pt-vh, 1vh) * 50);display:flex;flex-direction:column;gap:8px;padding:12px;box-sizing:border-box;border-radius:14px;background:${opaque(vars.bgColor)};color:${vars.textColor};border:1px solid ${vars.borderColor};box-shadow:0 6px 18px rgba(0,0,0,.35);">
         <div style="font-weight:600;">从世界书缝入</div>
         <select class="pt-wb-stitch-book" style="width:100%;padding:8px;border-radius:8px;background:${vars.inputBg};color:${vars.textColor};border:1px solid ${vars.inputBorder};">
           <option value="">选一本世界书</option>${options}
@@ -30,10 +30,9 @@ function dialogHtml(names, pinnedNames) {
           <span class="pt-wb-stitch-count" style="margin-left:auto;color:${vars.tipColor};"></span>
         </div>
         <div class="pt-wb-stitch-list" style="flex:1;min-height:120px;overflow-y:auto;overflow-x:hidden;border:1px solid ${vars.borderColor};border-radius:8px;padding:4px;"></div>
-        <div style="font-size:.8em;color:${vars.tipColor};">勾好后点“选位置”，再点预设里的一个条目，缝到它后面（会跟着进它所在的组）。和预设里重名的会自动加上书名，不会盖掉原来的。</div>
+        <div class="pt-wb-stitch-tip" style="font-size:.8em;color:${vars.tipColor};">勾上条目，点下面预设里的条目，缝到它后面。缝完接着勾下一条。</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
-          <button type="button" class="pt-wb-stitch-cancel" style="${btn}">取消</button>
-          <button type="button" class="pt-wb-stitch-go" disabled style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;box-shadow:none;">选位置</button>
+          <button type="button" class="pt-wb-stitch-cancel" style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;box-shadow:none;">缝完了，关掉</button>
         </div>
       </div>
     </div>`;
@@ -44,11 +43,12 @@ function rowHtml(entry, index) {
     const title = entry.name.trim() || '（无标题）';
     const preview = entry.content.replace(/\s+/g, ' ').trim().slice(0, 60);
     const tag = `${entry.role}${entry.enabled ? '' : ' · 已关'}`;
+    const done = `<small class="pt-wb-stitch-done" style="display:none;color:${vars.textColor};font-weight:600;"> ✓ 已缝</small>`;
     return `
       <label style="display:flex;gap:8px;align-items:flex-start;padding:8px 6px;border-bottom:1px solid ${vars.borderColor};cursor:pointer;">
         <input type="checkbox" class="pt-wb-stitch-pick" data-index="${index}" style="margin-top:3px;flex:none;">
         <span style="min-width:0;flex:1;">
-          <span style="display:block;word-break:break-word;">${escapeHtml(title)} <small style="color:${vars.tipColor};">${escapeHtml(tag)}</small></span>
+          <span style="display:block;word-break:break-word;">${escapeHtml(title)} <small style="color:${vars.tipColor};">${escapeHtml(tag)}</small>${done}</span>
           <small style="display:block;color:${vars.tipColor};word-break:break-word;">${escapeHtml(preview)}</small>
         </span>
       </label>`;
@@ -69,6 +69,7 @@ export async function openWorldbookStitchDialog(apiInfo) {
         return;
     }
 
+    window.ptWorldbookStitchClose?.();
     $(`#${DIALOG_ID}`).remove();
     const $host = $('#preset-transfer-modal');
     let pinnedNames = [];
@@ -79,18 +80,67 @@ export async function openWorldbookStitchDialog(apiInfo) {
     }
     ($host.length ? $host : $('body')).append(dialogHtml(names, pinnedNames));
     const $dialog = $(`#${DIALOG_ID}`);
-    makeSearchableSelect($dialog.find('.pt-wb-stitch-book'), { label: '世界书', dropdownParent: $dialog });
+    makeSearchableSelect($dialog.find('.pt-wb-stitch-book'), { label: '世界书', dropdownParent: $dialog.find('.pt-wb-stitch-panel') });
     let entries = [];
     let bookName = '';
 
+    const disarm = () => {
+        if (window.transferMode?.fromSide === 'worldbook') window.transferMode = null;
+        $('#left-side, #right-side, #single-container').removeClass('transfer-target');
+    };
+    const pickedIndexes = () =>
+        $dialog.find('.pt-wb-stitch-pick:checked').map((_, el) => Number($(el).data('index'))).get();
+    const arm = () => {
+        const indexes = pickedIndexes();
+        const picked = indexes.map(i => entries[i]).filter(Boolean);
+        if (!picked.length) {
+            disarm();
+            return;
+        }
+        window.transferMode = {
+            apiInfo,
+            fromSide: 'worldbook',
+            toSide: null,
+            selectedEntries: picked.map(e => worldEntryToPrompt(e.raw)),
+            selectedGroups: [],
+            sourceContainer: '',
+            worldbookName: bookName,
+            ptStitchIndexes: indexes,
+        };
+        $('#left-side, #right-side, #single-container').addClass('transfer-target');
+    };
     const updateCount = () => {
         const n = $dialog.find('.pt-wb-stitch-pick:checked').length;
         $dialog.find('.pt-wb-stitch-count').text(entries.length ? `已选 ${n}/${entries.length}` : '');
-        $dialog.find('.pt-wb-stitch-go').prop('disabled', n === 0);
+        arm();
     };
-    const close = () => $dialog.remove();
+    const onStitched = e => {
+        const indexes = Array.isArray(e.detail?.indexes) ? e.detail.indexes : [];
+        if (e.detail?.ok) {
+            for (const i of indexes) {
+                const $pick = $dialog.find(`.pt-wb-stitch-pick[data-index="${i}"]`);
+                $pick.prop('checked', false);
+                $pick.closest('label').find('.pt-wb-stitch-done').show();
+            }
+        }
+        updateCount();
+    };
+    // Reloading the entry list resets transferMode; re-arm right before a tap on the preset lands.
+    const rearmBeforeTap = e => {
+        if (window.transferMode || !$(e.target).closest('#left-side, #right-side, #single-container').length) return;
+        arm();
+    };
+    const close = () => {
+        window.removeEventListener('pt-worldbook-stitched', onStitched);
+        document.removeEventListener('click', rearmBeforeTap, true);
+        disarm();
+        $dialog.remove();
+        if (window.ptWorldbookStitchClose === close) window.ptWorldbookStitchClose = null;
+    };
+    window.ptWorldbookStitchClose = close;
+    window.addEventListener('pt-worldbook-stitched', onStitched);
+    document.addEventListener('click', rearmBeforeTap, true);
 
-    $dialog.on('click', e => { if (e.target === $dialog[0]) close(); });
     $dialog.find('.pt-wb-stitch-cancel').on('click', close);
     $dialog.find('.pt-wb-stitch-all').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', true); updateCount(); });
     $dialog.find('.pt-wb-stitch-none').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', false); updateCount(); });
@@ -110,26 +160,5 @@ export async function openWorldbookStitchDialog(apiInfo) {
         }
         $list.html(entries.length ? entries.map(rowHtml).join('') : '这本是空的');
         updateCount();
-    });
-
-    $dialog.find('.pt-wb-stitch-go').on('click', () => {
-        const picked = $dialog
-            .find('.pt-wb-stitch-pick:checked')
-            .map((_, el) => entries[Number($(el).data('index'))])
-            .get()
-            .filter(Boolean);
-        if (!picked.length) return;
-        window.transferMode = {
-            apiInfo,
-            fromSide: 'worldbook',
-            toSide: null,
-            selectedEntries: picked.map(e => worldEntryToPrompt(e.raw)),
-            selectedGroups: [],
-            sourceContainer: '',
-            worldbookName: bookName,
-        };
-        close();
-        $('#left-side, #right-side, #single-container').addClass('transfer-target');
-        alert(`已拿起《${bookName}》的 ${picked.length} 条。点预设里的一个条目，缝到它后面。`);
     });
 }

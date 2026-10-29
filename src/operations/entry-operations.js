@@ -272,8 +272,10 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
   const selectedGroups = Array.isArray(window.transferMode?.selectedGroups) ? window.transferMode.selectedGroups : [];
   const targetGroupId = String(window.transferMode?.targetGroupId ?? '').trim();
   const targetIdentifier = String(window.transferMode?.targetIdentifier ?? '').trim();
+  const stitchIndexes = window.transferMode?.ptStitchIndexes;
 
   let toPreset;
+  let stitched = false;
   let displayMode;
   if (toSide === 'single') {
     toPreset = window.singlePresetName;
@@ -354,6 +356,7 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
 
     // 转移成功
     console.log(`成功转移 ${selectedEntries.length} 个条目`);
+    stitched = true;
 
     // 检查是否需要自动关闭模态框
     if ($('#auto-close-modal').prop('checked')) {
@@ -370,6 +373,9 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
     // 重置转移模式
     window.transferMode = null;
     $('.transfer-target, .transfer-source').removeClass('transfer-target transfer-source');
+    if (fromSide === 'worldbook') {
+      window.dispatchEvent(new CustomEvent('pt-worldbook-stitched', { detail: { ok: stitched, indexes: stitchIndexes } }));
+    }
   }
 }
 
