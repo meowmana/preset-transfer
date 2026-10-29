@@ -1,7 +1,8 @@
 import { ensureViewportCssVars, escapeAttr, escapeHtml, getCurrentApiInfo, getDeviceInfo, getJQuery } from '../core/utils.js';
 import { bindTransferEvents } from '../events/event-binding.js';
 import { loadLocalManifest } from '../features/extension-update.js';
-import { initPresetListGrouping } from '../features/preset-list-grouping.js';
+import { getCurrentCharacterWorldbooks } from '../core/worldbook-api.js';
+import { bindSelect2AutoClose, initPresetListGrouping } from '../features/preset-list-grouping.js';
 import { initializeEnhancedFeatures } from '../settings/enhanced-features.js';
 import { getActiveTransferAdapter, getTransferEngine, setActiveTransferAdapterKey } from '../transfer/transfer-context.js';
 import { favoriteStarIcon, gearIcon, getCurrentPresetIcon } from './icons.js';
@@ -319,6 +320,7 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
   let containerNames = initialContainerNames;
   const isLoadingContainers = adapter.id !== 'preset';
   if (isLoadingContainers) containerNames = [];
+  let pinnedContainerNames = [];
 
   let containerOptionsToken = 0;
   const populateContainerOptions = (names, { loading = false } = {}) => {
@@ -358,14 +360,27 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
 
       if (normalized.length === 0) return;
 
+      const pinned = pinnedContainerNames.filter((n) => normalized.includes(n));
+      const rest = pinned.length ? normalized.filter((n) => !pinned.includes(n)) : normalized;
+      let listParent = el;
+      if (pinned.length) {
+        const pinGroup = doc.createElement('optgroup');
+        pinGroup.label = '当前角色';
+        for (const name of pinned) pinGroup.appendChild(makeOption(name, name));
+        el.appendChild(pinGroup);
+        listParent = doc.createElement('optgroup');
+        listParent.label = `其他${label}`;
+        el.appendChild(listParent);
+      }
+
       const CHUNK_THRESHOLD = adapter.id === 'worldbook' ? 60 : 900;
       const CHUNK_SIZE = adapter.id === 'worldbook' ? 40 : 300;
 
-      if (normalized.length <= CHUNK_THRESHOLD) {
+      if (rest.length <= CHUNK_THRESHOLD) {
         const frag = doc.createDocumentFragment();
-        for (const name of normalized) frag.appendChild(makeOption(name, name));
+        for (const name of rest) frag.appendChild(makeOption(name, name));
         if (el.dataset.ptContainerOptionsToken !== token) return;
-        el.appendChild(frag);
+        listParent.appendChild(frag);
         return;
       }
 
@@ -373,13 +388,13 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
       const appendChunk = () => {
         if (el.dataset.ptContainerOptionsToken !== token) return;
         const frag = doc.createDocumentFragment();
-        const end = Math.min(normalized.length, idx + CHUNK_SIZE);
+        const end = Math.min(rest.length, idx + CHUNK_SIZE);
         for (; idx < end; idx += 1) {
-          const name = normalized[idx];
+          const name = rest[idx];
           frag.appendChild(makeOption(name, name));
         }
-        el.appendChild(frag);
-        if (idx < normalized.length) requestAnimationFrame(appendChunk);
+        listParent.appendChild(frag);
+        if (idx < rest.length) requestAnimationFrame(appendChunk);
       };
 
       requestAnimationFrame(appendChunk);
@@ -550,8 +565,31 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
         });
       };
 
-      enableDblClickSearch('#left-preset');
-      enableDblClickSearch('#right-preset');
+      const enableSearchableSelect = (selectId) => {
+        const $select = $(selectId);
+        if (!$select.length || typeof $.fn?.select2 !== 'function') return false;
+        $select.select2({
+          width: '100%',
+          dropdownCssClass: 'pt-preset-list-dropdown',
+          language: { noResults: () => `没有匹配的${adapter.ui.containerLabel}` },
+          templateResult: (item) => (item?.id === '' ? null : item?.text),
+        });
+        $select.on('select2:open', () => {
+          setTimeout(() => {
+            const input = document.querySelector('.select2-container--open .select2-search__field');
+            if (!input) return;
+            input.placeholder = `搜索${adapter.ui.containerLabel}...`;
+            // 手机上别一打开就弹键盘挡住置顶的书，点搜索框再弹
+            if (window.matchMedia?.('(pointer: coarse)').matches) input.blur();
+          }, 0);
+        });
+        bindSelect2AutoClose('preset-transfer-modal');
+        return true;
+      };
+
+      for (const selectId of ['#left-preset', '#right-preset']) {
+        if (!enableSearchableSelect(selectId)) enableDblClickSearch(selectId);
+      }
     }
 
     if (!adapter.capabilities.supportsBatchDeleteContainers) {
@@ -618,6 +656,11 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
             return;
           }
           containerNames = names;
+          try {
+            pinnedContainerNames = await getCurrentCharacterWorldbooks();
+          } catch {
+            pinnedContainerNames = [];
+          }
           populateContainerOptions(containerNames, { loading: false });
         } catch (error) {
           console.error('PresetTransfer: failed to load containers', error);

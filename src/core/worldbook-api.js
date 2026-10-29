@@ -179,6 +179,34 @@ async function computeCharacterLinkedWorldbooks(options = {}) {
   return bound;
 }
 
+async function getCurrentCharacterWorldbooks() {
+  const ctx = getSillyTavernContext();
+  const chid = ctx?.characterId;
+  const character = chid === undefined || chid === null ? null : ctx?.characters?.[chid];
+  if (!character) return [];
+
+  const names = [];
+  const add = (value) => {
+    const name = normalizeString(value);
+    if (name && !names.includes(name)) names.push(name);
+  };
+
+  add(character?.data?.extensions?.world ?? character?.extensions?.world);
+
+  try {
+    const mod = await getWorldInfoModule();
+    await waitForWorldInfoSettings(mod);
+    const fileName = normalizeString(character?.avatar).replace(/\.[^/.]+$/, '');
+    const charLore = mod?.world_info?.charLore;
+    const lore = Array.isArray(charLore) ? charLore.find((e) => e?.name === fileName) : null;
+    for (const name of asArray(lore?.extraBooks)) add(name);
+  } catch {
+    // ignore
+  }
+
+  return names;
+}
+
 async function listWorldbooks() {
   const mod = await getWorldInfoModule();
 
@@ -229,6 +257,7 @@ async function batchDeleteWorldbooks(worldbookNames) {
 export {
   getWorldInfoModule,
   computeCharacterLinkedWorldbooks,
+  getCurrentCharacterWorldbooks,
   listWorldbooks,
   batchDeleteWorldbooks,
 };
