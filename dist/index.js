@@ -18913,12 +18913,12 @@ function bb(e) {
 const yb = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
   initDragDrop: bb
-}, Symbol.toStringTag, { value: "Module" })), Kl = "pt-wb-stitch-dialog";
-function n1(e) {
+}, Symbol.toStringTag, { value: "Module" })), Kl = "pt-wb-stitch-dialog", n1 = (e) => String(e).replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]*\)/, "rgb($1,$2,$3)");
+function r1(e) {
   const t = V.getVars(), n = e.map((r) => `<option value="${N(r)}">${N(r)}</option>`).join("");
   return `
-    <div id="${Kl}" style="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;">
-      <div style="width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column;gap:10px;padding:16px;box-sizing:border-box;border-radius:14px;background:${t.bgColor};color:${t.textColor};border:1px solid ${t.borderColor};">
+    <div id="${Kl}" style="position:fixed;top:0;left:0;width:100vw;height:calc(var(--pt-vh, 1vh) * 100);z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top)) 12px 16px;box-sizing:border-box;">
+      <div style="width:min(560px,100%);max-height:calc(var(--pt-vh, 1vh) * 100 - 40px);margin:auto 0;display:flex;flex-direction:column;gap:10px;padding:16px;box-sizing:border-box;border-radius:14px;background:${n1(t.bgColor)};color:${t.textColor};border:1px solid ${t.borderColor};">
         <div style="font-weight:600;">从世界书缝入</div>
         <select class="pt-wb-stitch-book" style="width:100%;padding:8px;border-radius:8px;background:${t.inputBg};color:${t.textColor};border:1px solid ${t.inputBorder};">
           <option value="">选一本世界书</option>${n}
@@ -18932,12 +18932,12 @@ function n1(e) {
         <div style="font-size:.8em;color:${t.tipColor};">勾好后点“选位置”，再点预设里的一个条目，缝到它后面（会跟着进它所在的组）。和预设里重名的会自动加上书名，不会盖掉原来的。</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" class="pt-wb-stitch-cancel">取消</button>
-          <button type="button" class="pt-wb-stitch-go" disabled>选位置</button>
+          <button type="button" class="pt-wb-stitch-go" disabled style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;">选位置</button>
         </div>
       </div>
     </div>`;
 }
-function r1(e, t) {
+function o1(e, t) {
   const n = V.getVars(), r = e.name.trim() || "（无标题）", o = e.content.replace(/\s+/g, " ").trim().slice(0, 60), i = `${e.role}${e.enabled ? "" : " · 已关"}`;
   return `
       <label style="display:flex;gap:8px;align-items:flex-start;padding:8px 6px;border-bottom:1px solid ${n.borderColor};cursor:pointer;">
@@ -18948,55 +18948,57 @@ function r1(e, t) {
         </span>
       </label>`;
 }
-async function o1(e) {
+async function i1(e) {
   const t = _(), n = rf();
   let r;
   try {
     r = await n.listContainers(e);
-  } catch (c) {
-    alert("读不到世界书列表: " + c.message);
+  } catch (d) {
+    alert("读不到世界书列表: " + d.message);
     return;
   }
   if (!r.length) {
     alert("还没有世界书");
     return;
   }
-  t(`#${Kl}`).remove(), t("body").append(n1(r));
-  const o = t(`#${Kl}`);
-  let i = [], s = "";
-  const a = () => {
-    const c = o.find(".pt-wb-stitch-pick:checked").length;
-    o.find(".pt-wb-stitch-count").text(i.length ? `已选 ${c}/${i.length}` : ""), o.find(".pt-wb-stitch-go").prop("disabled", c === 0);
-  }, l = () => o.remove();
-  o.on("click", (c) => {
-    c.target === o[0] && l();
-  }), o.find(".pt-wb-stitch-cancel").on("click", l), o.find(".pt-wb-stitch-all").on("click", () => {
-    o.find(".pt-wb-stitch-pick").prop("checked", !0), a();
-  }), o.find(".pt-wb-stitch-none").on("click", () => {
-    o.find(".pt-wb-stitch-pick").prop("checked", !1), a();
-  }), o.on("change", ".pt-wb-stitch-pick", a), o.find(".pt-wb-stitch-book").on("change", async function() {
-    s = String(t(this).val() ?? "");
-    const c = o.find(".pt-wb-stitch-list").empty();
-    if (i = [], a(), !!s) {
+  t(`#${Kl}`).remove();
+  const o = t("#preset-transfer-modal");
+  (o.length ? o : t("body")).append(r1(r));
+  const i = t(`#${Kl}`);
+  let s = [], a = "";
+  const l = () => {
+    const d = i.find(".pt-wb-stitch-pick:checked").length;
+    i.find(".pt-wb-stitch-count").text(s.length ? `已选 ${d}/${s.length}` : ""), i.find(".pt-wb-stitch-go").prop("disabled", d === 0);
+  }, c = () => i.remove();
+  i.on("click", (d) => {
+    d.target === i[0] && c();
+  }), i.find(".pt-wb-stitch-cancel").on("click", c), i.find(".pt-wb-stitch-all").on("click", () => {
+    i.find(".pt-wb-stitch-pick").prop("checked", !0), l();
+  }), i.find(".pt-wb-stitch-none").on("click", () => {
+    i.find(".pt-wb-stitch-pick").prop("checked", !1), l();
+  }), i.on("change", ".pt-wb-stitch-pick", l), i.find(".pt-wb-stitch-book").on("change", async function() {
+    a = String(t(this).val() ?? "");
+    const d = i.find(".pt-wb-stitch-list").empty();
+    if (s = [], l(), !!a) {
       try {
-        i = await n.getEntries(e, s, "default");
-      } catch (d) {
-        c.text("读不出这本: " + d.message);
+        s = await n.getEntries(e, a, "default");
+      } catch (p) {
+        d.text("读不出这本: " + p.message);
         return;
       }
-      c.html(i.length ? i.map(r1).join("") : "这本是空的"), a();
+      d.html(s.length ? s.map(o1).join("") : "这本是空的"), l();
     }
-  }), o.find(".pt-wb-stitch-go").on("click", () => {
-    const c = o.find(".pt-wb-stitch-pick:checked").map((d, p) => i[Number(t(p).data("index"))]).get().filter(Boolean);
-    c.length && (window.transferMode = {
+  }), i.find(".pt-wb-stitch-go").on("click", () => {
+    const d = i.find(".pt-wb-stitch-pick:checked").map((p, u) => s[Number(t(u).data("index"))]).get().filter(Boolean);
+    d.length && (window.transferMode = {
       apiInfo: e,
       fromSide: "worldbook",
       toSide: null,
-      selectedEntries: c.map((d) => lw(d.raw)),
+      selectedEntries: d.map((p) => lw(p.raw)),
       selectedGroups: [],
       sourceContainer: "",
-      worldbookName: s
-    }, l(), t("#left-side, #right-side, #single-container").addClass("transfer-target"), alert(`已拿起《${s}》的 ${c.length} 条。点预设里的一个条目，缝到它后面。`));
+      worldbookName: a
+    }, c(), t("#left-side, #right-side, #single-container").addClass("transfer-target"), alert(`已拿起《${a}》的 ${d.length} 条。点预设里的一个条目，缝到它后面。`));
   });
 }
 function wb(e, t) {
@@ -19182,7 +19184,7 @@ function wb(e, t) {
     v.is("#left-preset");
     const b = v.val();
     v.data("previous-value"), i.prop("disabled", !r.val() && !o.val()), f(), Ci(), b && td(b), v.data("previous-value", b);
-  }), i.on("click", () => we(e)), n("#pt-stitch-from-worldbook").on("click", () => o1(Y() || e)), n("#batch-delete-presets").on("click", async () => {
+  }), i.on("click", () => we(e)), n("#pt-stitch-from-worldbook").on("click", () => i1(Y() || e)), n("#batch-delete-presets").on("click", async () => {
     const v = Y();
     if (!v) {
       alert("无法获取当前API信息，请确保 SillyTavern 已正确加载");
@@ -19485,7 +19487,7 @@ const kb = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   addPreviewButtons: Sb,
   initializeEnhancedFeatures: $b
 }, Symbol.toStringTag, { value: "Module" }));
-async function i1({ adapterKey: e = "preset" } = {}) {
+async function s1({ adapterKey: e = "preset" } = {}) {
   _y(e);
   const t = ie();
   console.log("开始创建转移UI...");
@@ -19921,8 +19923,8 @@ async function i1({ adapterKey: e = "preset" } = {}) {
 }
 const Pd = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  createTransferUI: i1
-}, Symbol.toStringTag, { value: "Module" })), Jl = "pt-snapshot-edit-modal", s1 = 120, _b = "preset_transfer_snapshot_bundle", a1 = 1;
+  createTransferUI: s1
+}, Symbol.toStringTag, { value: "Module" })), Jl = "pt-snapshot-edit-modal", a1 = 120, _b = "preset_transfer_snapshot_bundle", l1 = 1;
 let ql = [], Lo = null;
 function je(e) {
   try {
@@ -19939,10 +19941,10 @@ function le(e, t) {
 function nu(e) {
   return `${(e / 1024).toFixed(2)} KB`;
 }
-function l1(e, t = "snapshot") {
+function c1(e, t = "snapshot") {
   return String(e ?? "").trim().replace(/[\s.<>:"/\\|?*\x00-\x1F\x7F]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 80) || t;
 }
-function c1(e, t, n = "application/json") {
+function d1(e, t, n = "application/json") {
   if (typeof download == "function") {
     download(e, t, n);
     return;
@@ -19950,7 +19952,7 @@ function c1(e, t, n = "application/json") {
   const r = new Blob([e], { type: n }), o = URL.createObjectURL(r), i = document.createElement("a");
   i.href = o, i.download = t, document.body.appendChild(i), i.click(), document.body.removeChild(i), URL.revokeObjectURL(o);
 }
-function d1(e) {
+function p1(e) {
   return new Promise((t, n) => {
     try {
       const r = new FileReader();
@@ -19963,7 +19965,7 @@ function d1(e) {
     }
   });
 }
-function p1(e = ".json,application/json") {
+function u1(e = ".json,application/json") {
   return new Promise((t) => {
     const n = document.createElement("input");
     let r = !1;
@@ -19985,7 +19987,7 @@ function p1(e = ".json,application/json") {
     ), document.body.appendChild(n), window.addEventListener("focus", i, !0), n.click();
   });
 }
-function u1(e) {
+function f1(e) {
   return e ? new Date(e).toLocaleString("zh-CN", {
     year: "numeric",
     month: "2-digit",
@@ -19994,11 +19996,11 @@ function u1(e) {
     minute: "2-digit"
   }) : "未记录时间";
 }
-function f1(e) {
+function g1(e) {
   const t = String((e == null ? void 0 : e.version) ?? "").trim();
   return t ? `v${t}` : "未标注版本";
 }
-function g1() {
+function m1() {
   var e, t;
   try {
     return ((t = (e = H.API).getLoadedPresetName) == null ? void 0 : t.call(e)) ?? null;
@@ -20006,7 +20008,7 @@ function g1() {
     return null;
   }
 }
-function m1(e, t) {
+function h1(e, t) {
   var n, r;
   try {
     const o = (r = (n = e == null ? void 0 : e.presetManager) == null ? void 0 : n.getCompletionPresetByName) == null ? void 0 : r.call(n, "in_use");
@@ -20016,7 +20018,7 @@ function m1(e, t) {
   }
   return ee(e, t);
 }
-function h1(e) {
+function b1(e) {
   var n;
   return String(((n = e == null ? void 0 : e.prompt) == null ? void 0 : n.name) ?? "").trim() || "未命名条目";
 }
@@ -20037,7 +20039,7 @@ function Xl(e) {
       endSourceIndex: Number.isFinite(o == null ? void 0 : o.endSourceIndex) ? o.endSourceIndex : -1
     }, a = JSON.stringify(s);
     (Array.isArray(o == null ? void 0 : o.stitches) ? o.stitches : []).forEach((l, c) => {
-      const d = Cb(l, `run:${i}:${c}`), p = h1(l);
+      const d = Cb(l, `run:${i}:${c}`), p = b1(l);
       t.push({
         key: d,
         stitchId: String((l == null ? void 0 : l.stitchId) ?? "").trim(),
@@ -20052,7 +20054,7 @@ function Xl(e) {
     });
   }), t;
 }
-function b1(e, t) {
+function y1(e, t) {
   const n = {
     schema: Number.isFinite(e == null ? void 0 : e.schema) ? e.schema : 1,
     createdAt: (/* @__PURE__ */ new Date()).toISOString(),
@@ -20071,7 +20073,7 @@ function b1(e, t) {
     }));
   }), n.runs = n.runs.filter((i) => Array.isArray(i.stitches) && i.stitches.length > 0), Ye(n);
 }
-function y1(e, t) {
+function w1(e, t) {
   const n = new Set(t), r = je(Ye(e) ?? {});
   return r.runs = (Array.isArray(r.runs) ? r.runs : []).map((o, i) => {
     const s = (Array.isArray(o == null ? void 0 : o.stitches) ? o.stitches : []).filter((a, l) => {
@@ -20088,7 +20090,7 @@ function Id(e, t, n = {}) {
     let d = -1;
     l && (d = i.findIndex((p) => String((p == null ? void 0 : p.stitchId) ?? "").trim() === l)), d === -1 && c && (d = i.findIndex((p) => String((p == null ? void 0 : p.nameKey) ?? "").trim() === c)), d >= 0 ? i[d] = je(a) : i.push(je(a));
   }
-  const s = Ye(b1((e == null ? void 0 : e.patch) ?? (t == null ? void 0 : t.patch), i));
+  const s = Ye(y1((e == null ? void 0 : e.patch) ?? (t == null ? void 0 : t.patch), i));
   return {
     schema: As,
     updatedAt: n.updatedAt ?? Date.now(),
@@ -20098,7 +20100,7 @@ function Id(e, t, n = {}) {
     stitchCount: Oe(s)
   };
 }
-function w1(e, t = Date.now()) {
+function v1(e, t = Date.now()) {
   if (!e || typeof e != "object" || Array.isArray(e)) return null;
   const n = String((e == null ? void 0 : e.normalizedBase) ?? "").trim();
   if (!n) return null;
@@ -20117,7 +20119,7 @@ function w1(e, t = Date.now()) {
 function Ql(e) {
   const t = /* @__PURE__ */ new Map();
   return e.forEach((n, r) => {
-    const o = w1(n, Date.now() + r);
+    const o = v1(n, Date.now() + r);
     if (!o) return;
     const i = o.normalizedBase, s = t.get(i);
     if (!s) {
@@ -20138,7 +20140,7 @@ function Ql(e) {
     });
   }), t;
 }
-function v1(e) {
+function x1(e) {
   if (Array.isArray(e))
     return e;
   if (!e || typeof e != "object")
@@ -20151,32 +20153,32 @@ function v1(e) {
   }
   throw new Error("快照文件中未找到可导入的数据。");
 }
-async function x1() {
+async function $1() {
   try {
     const e = await Pb();
     if (!e.length) {
       le("info", "当前没有可导出的快照。");
       return;
     }
-    const t = Array.from(Ql(e).values()), n = (/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/[:.]/g, "-"), r = `preset-transfer-snapshots-${l1(n, "export")}.json`, o = {
+    const t = Array.from(Ql(e).values()), n = (/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/[:.]/g, "-"), r = `preset-transfer-snapshots-${c1(n, "export")}.json`, o = {
       type: _b,
-      version: a1,
+      version: l1,
       metadata: {
         exportTime: (/* @__PURE__ */ new Date()).toISOString(),
         snapshotCount: t.length
       },
       snapshots: t
     };
-    c1(JSON.stringify(o, null, 2), r), le("success", `已导出 ${t.length} 个快照。`);
+    d1(JSON.stringify(o, null, 2), r), le("success", `已导出 ${t.length} 个快照。`);
   } catch (e) {
     console.error("[PresetTransfer] Failed to export snapshots:", e), le("error", e.message || "导出快照失败。");
   }
 }
-async function $1() {
+async function S1() {
   try {
-    const e = await p1();
+    const e = await u1();
     if (!e) return;
-    const t = await d1(e), n = JSON.parse(t), r = v1(n), o = Ql(r);
+    const t = await p1(e), n = JSON.parse(t), r = x1(n), o = Ql(r);
     if (o.size === 0)
       throw new Error("导入文件中没有有效快照。");
     const i = await Is(), s = Ql(i), a = Array.from(o.keys()).filter((u) => s.has(u)).length, l = o.size - a;
@@ -20214,7 +20216,7 @@ async function $1() {
     console.error("[PresetTransfer] Failed to import snapshots:", e), le("error", e.message || "导入快照失败。");
   }
 }
-async function S1() {
+async function k1() {
   const e = String(prompt(`请选择快照操作：
 1. 导出快照
 2. 导入快照
@@ -20222,11 +20224,11 @@ async function S1() {
 请输入 1 或 2`) ?? "").trim();
   if (e) {
     if (e === "1") {
-      await x1();
+      await $1();
       return;
     }
     if (e === "2") {
-      await $1();
+      await S1();
       return;
     }
     le("info", "已取消：请输入 1 或 2。");
@@ -20242,7 +20244,7 @@ async function Pb() {
     return console.error("[PresetTransfer] Failed to load snapshots:", e), [];
   }
 }
-function k1(e) {
+function _1(e) {
   const n = _()("#pt-snapshot-list");
   if (!n.length) return;
   if (e.length === 0) {
@@ -20262,7 +20264,7 @@ function k1(e) {
           <div class="pt-snapshot-header">
             <div class="pt-snapshot-title">
               <strong>${N(i.presetName || i.normalizedBase)}</strong>
-              <span class="pt-snapshot-version">${N(f1(i))}</span>
+              <span class="pt-snapshot-version">${N(g1(i))}</span>
             </div>
             <div class="pt-snapshot-actions">
               <button
@@ -20293,7 +20295,7 @@ function k1(e) {
               <i class="fa fa-database"></i> ${nu(s)}
             </span>
             <span class="pt-snapshot-info-item">
-              <i class="fa fa-clock"></i> ${u1(i.updatedAt)}
+              <i class="fa fa-clock"></i> ${f1(i.updatedAt)}
             </span>
           </div>
         </div>
@@ -20309,14 +20311,14 @@ function k1(e) {
 }
 async function Ad() {
   const e = await Pb();
-  k1(e);
+  _1(e);
 }
 function ru() {
   Lo && clearTimeout(Lo), Lo = setTimeout(() => {
     Lo = null, Ad();
-  }, s1);
+  }, a1);
 }
-async function _1(e) {
+async function C1(e) {
   const t = ql.find((o) => o.normalizedBase === e);
   if (!t || !confirm(
     `确定要删除快照“${t.presetName || t.normalizedBase}”吗？
@@ -20329,15 +20331,15 @@ async function _1(e) {
   }
   le("success", `已删除快照：${t.presetName || t.normalizedBase}`);
 }
-async function C1() {
+async function P1() {
   try {
     const e = Y();
     if (!(e != null && e.presetManager))
       throw new Error("无法获取当前预设管理器。");
-    const t = String(g1() ?? "").trim();
+    const t = String(m1() ?? "").trim();
     if (!t)
       throw new Error("当前没有已加载的预设。");
-    const n = m1(e, t);
+    const n = h1(e, t);
     if (!n || typeof n != "object")
       throw new Error("无法读取当前预设数据。");
     const r = se(t), o = r != null && r.normalizedBase ? await Ps(r.normalizedBase) : null, i = await Tc(t, n, { deleteIfEmpty: !1 });
@@ -20384,7 +20386,7 @@ function ou(e, t, n) {
         `;
   e.find(".pt-snapshot-editor-count").text(`${r.length} 条缝合`), e.find(".pt-snapshot-editor-base").text(n), e.find(".pt-snapshot-entry-list").html(o);
 }
-async function P1(e, t, n, r) {
+async function I1(e, t, n, r) {
   const o = String(r.find(".pt-snapshot-editor-name").val() ?? "").trim();
   if (!o) {
     le("error", "快照预设名不能为空。");
@@ -20450,7 +20452,7 @@ async function P1(e, t, n, r) {
   }
   await dn(e) ? le("success", "快照索引已更新。") : le("warning", "新索引快照已保存，但旧快照删除失败，请手动检查。"), Tt();
 }
-async function I1(e) {
+async function A1(e) {
   const t = await Ps(e);
   if (!t) {
     le("error", "找不到对应的快照。");
@@ -20553,28 +20555,28 @@ async function I1(e) {
     Tt();
   }), f.on("click", ".pt-snapshot-entry-remove", function() {
     const g = String(n(this).data("key") ?? "").trim();
-    g && (r.patch = y1(r.patch, [g]), ou(f, r, e));
+    g && (r.patch = w1(r.patch, [g]), ou(f, r, e));
   }), f.find(".pt-snapshot-editor-save").on("click", async () => {
-    await P1(e, t, r, f);
-  });
-}
-function A1() {
-  const e = _();
-  e("#pt-snapshot-transfer").off("click").on("click", async () => {
-    await S1();
-  }), e("#pt-snapshot-save-current").off("click").on("click", async () => {
-    await C1();
-  }), e("#pt-snapshot-list").off("click", ".pt-snapshot-delete").on("click", ".pt-snapshot-delete", async function(t) {
-    t.stopPropagation();
-    const n = String(e(this).data("base") ?? "").trim();
-    n && await _1(n);
-  }), e("#pt-snapshot-list").off("click", ".pt-snapshot-edit").on("click", ".pt-snapshot-edit", async function(t) {
-    t.stopPropagation();
-    const n = String(e(this).data("base") ?? "").trim();
-    n && await I1(n);
+    await I1(e, t, r, f);
   });
 }
 function E1() {
+  const e = _();
+  e("#pt-snapshot-transfer").off("click").on("click", async () => {
+    await k1();
+  }), e("#pt-snapshot-save-current").off("click").on("click", async () => {
+    await P1();
+  }), e("#pt-snapshot-list").off("click", ".pt-snapshot-delete").on("click", ".pt-snapshot-delete", async function(t) {
+    t.stopPropagation();
+    const n = String(e(this).data("base") ?? "").trim();
+    n && await C1(n);
+  }), e("#pt-snapshot-list").off("click", ".pt-snapshot-edit").on("click", ".pt-snapshot-edit", async function(t) {
+    t.stopPropagation();
+    const n = String(e(this).data("base") ?? "").trim();
+    n && await A1(n);
+  });
+}
+function T1() {
   const e = K();
   if (e.__ptSnapshotRefreshSourcesBound) return;
   e.__ptSnapshotRefreshSourcesBound = !0, e.addEventListener(Lg, () => {
@@ -20598,13 +20600,13 @@ function E1() {
     }
   });
 }
-function T1() {
+function z1() {
   const e = _();
   if (!e(".pt-snapshot-toolbar").length) return;
   const n = e("#pt-snapshot-transfer");
   n.length && n.html('<i class="fa fa-exchange"></i> 导出/导入快照'), e("#pt-snapshot-import").remove(), e("#pt-snapshot-export").remove();
 }
-function z1() {
+function M1() {
   return `
     <div class="pt-snapshot-panel">
       <div class="pt-snapshot-toolbar">
@@ -20623,8 +20625,8 @@ function z1() {
     </div>
   `;
 }
-async function M1() {
-  T1(), A1(), E1(), await Ad();
+async function B1() {
+  z1(), E1(), T1(), await Ad();
 }
 function Ib(e) {
   return String(e ?? "").replace(/^\/+/, "").split("/").map((n) => encodeURIComponent(n)).join("/");
@@ -20645,11 +20647,11 @@ async function Js(e) {
   }
   return t || `HTTP ${e.status}`;
 }
-function B1(e) {
+function O1(e) {
   const t = String(e ?? "");
   return btoa(unescape(encodeURIComponent(t)));
 }
-async function O1({ owner: e, repo: t, token: n, filePath: r, ref: o }) {
+async function j1({ owner: e, repo: t, token: n, filePath: r, ref: o }) {
   const i = Ib(r), s = `?ref=${encodeURIComponent(o)}`, a = `https://api.github.com/repos/${e}/${t}/contents/${i}${s}`, l = await fetch(a, {
     cache: "no-store",
     headers: Ys(n)
@@ -20660,10 +20662,10 @@ async function O1({ owner: e, repo: t, token: n, filePath: r, ref: o }) {
   const c = await l.json().catch(() => ({}));
   return c && typeof c == "object" ? c : null;
 }
-async function j1({ owner: e, repo: t, token: n, branch: r, filePath: o, contentText: i, message: s }) {
-  const a = Ib(o), l = `https://api.github.com/repos/${e}/${t}/contents/${a}`, c = await O1({ owner: e, repo: t, token: n, filePath: o, ref: r }), d = c == null ? void 0 : c.sha, p = {
+async function N1({ owner: e, repo: t, token: n, branch: r, filePath: o, contentText: i, message: s }) {
+  const a = Ib(o), l = `https://api.github.com/repos/${e}/${t}/contents/${a}`, c = await j1({ owner: e, repo: t, token: n, filePath: o, ref: r }), d = c == null ? void 0 : c.sha, p = {
     message: String(s ?? "").trim() || `Update ${o}`,
-    content: B1(i),
+    content: O1(i),
     branch: String(r ?? "").trim() || void 0,
     sha: d ? String(d) : void 0
   };
@@ -20679,7 +20681,7 @@ async function j1({ owner: e, repo: t, token: n, branch: r, filePath: o, content
   const f = await u.json().catch(() => ({}));
   return f && typeof f == "object" ? f : {};
 }
-async function N1({ owner: e, repo: t, token: n, tagName: r, sha: o }) {
+async function G1({ owner: e, repo: t, token: n, tagName: r, sha: o }) {
   const i = `https://api.github.com/repos/${e}/${t}/git/refs`, s = {
     ref: `refs/tags/${String(r ?? "").trim()}`,
     sha: String(o ?? "").trim()
@@ -20694,7 +20696,7 @@ async function N1({ owner: e, repo: t, token: n, tagName: r, sha: o }) {
   const l = await a.json().catch(() => ({}));
   return l && typeof l == "object" ? l : {};
 }
-async function G1({ owner: e, repo: t, token: n, tagName: r, name: o, bodyText: i, targetCommitish: s }) {
+async function L1({ owner: e, repo: t, token: n, tagName: r, name: o, bodyText: i, targetCommitish: s }) {
   const a = `https://api.github.com/repos/${e}/${t}/releases`, l = {
     tag_name: String(r ?? "").trim(),
     name: String(o ?? "").trim() || void 0,
@@ -20716,18 +20718,18 @@ async function G1({ owner: e, repo: t, token: n, tagName: r, name: o, bodyText: 
   return d && typeof d == "object" ? d : {};
 }
 const iu = "__ptPresetTransferSkipAutoMigrateUntilByPresetName", su = 60 * 1e3;
-function L1(e, t = su) {
+function R1(e, t = su) {
   const n = String(e ?? "").trim();
   if (!n) return !1;
   const r = typeof K == "function" ? K() : window, o = r == null ? void 0 : r[iu], i = o && typeof o == "object" ? o : r[iu] = {}, s = Math.max(1e3, Number(t) || su);
   return i[n] = Date.now() + s, !0;
 }
-function R1(e) {
+function D1(e) {
   if (!e || typeof e != "object") return 0;
   const t = Array.isArray(e.runs) ? e.runs : [], n = Array.isArray(e.uninserted) ? e.uninserted : [];
   return t.reduce((o, i) => o + (Array.isArray(i == null ? void 0 : i.stitches) ? i.stitches.length : 0), 0) + n.length;
 }
-function D1(e, t, n) {
+function F1(e, t, n) {
   const r = _e(n), o = Array.isArray(e == null ? void 0 : e.presetNames) ? e.presetNames : [];
   for (const i of o) {
     const s = se(i);
@@ -20736,7 +20738,7 @@ function D1(e, t, n) {
   }
   return null;
 }
-async function F1(e, t = {}) {
+async function W1(e, t = {}) {
   var f, g;
   const { allowGitFetch: n = !0 } = t, r = _e(e);
   if (!r)
@@ -20748,10 +20750,10 @@ async function F1(e, t = {}) {
   const s = se(i);
   if (!(s != null && s.normalizedBase)) throw new Error("无法解析当前预设版本信息");
   const a = Ki(s.normalizedBase);
-  let l = D1(o, s.normalizedBase, r);
+  let l = F1(o, s.normalizedBase, r);
   if (!l && n && a) {
     const { json: h } = await Yg(a, { version: r });
-    l = `${s.base || s.raw || String(i)} v${r}`, L1(l);
+    l = `${s.base || s.raw || String(i)} v${r}`, R1(l);
     const y = h && typeof h == "object" ? h : {};
     y.name = l, await o.presetManager.savePreset(l, y);
   }
@@ -20762,7 +20764,7 @@ async function F1(e, t = {}) {
     m && y && m !== y && a && !Ki(m) && zc(m, a);
   } catch {
   }
-  const c = ee(o, i), d = ee(o, l), p = kn(c), u = R1(p);
+  const c = ee(o, i), d = ee(o, l), p = kn(c), u = D1(p);
   if (u > 0)
     if (typeof window < "u" && typeof window.confirm == "function" ? window.confirm(
       `检测到当前预设包含 ${u} 条缝合条目。
@@ -20782,7 +20784,7 @@ async function F1(e, t = {}) {
 }
 const qs = "preset-transfer-extension-settings";
 let hs = "";
-const bs = {}, Zl = "pt_meta", au = "presetTransfer", Ab = "preset-transfer-transfer-tools-active-tab", W1 = ["features", "settings", "snapshots", "io"];
+const bs = {}, Zl = "pt_meta", au = "presetTransfer", Ab = "preset-transfer-transfer-tools-active-tab", U1 = ["features", "settings", "snapshots", "io"];
 function ec(e) {
   if (!e || typeof e != "object") return;
   if (Array.isArray(e)) {
@@ -20792,7 +20794,7 @@ function ec(e) {
   const t = e[Zl];
   t && typeof t == "object" && !Array.isArray(t) && Object.prototype.hasOwnProperty.call(t, au) && (delete t[au], Object.keys(t).length === 0 && delete e[Zl]), Object.values(e).forEach(ec);
 }
-function U1(e) {
+function H1(e) {
   try {
     return structuredClone(e);
   } catch {
@@ -20800,11 +20802,11 @@ function U1(e) {
   }
 }
 function lu(e) {
-  const t = U1(e);
+  const t = H1(e);
   return ec(t), t;
 }
 let Ro = null;
-async function H1() {
+async function V1() {
   return Ro || (Ro = (async () => {
     try {
       const e = await import(
@@ -20871,7 +20873,7 @@ function Fo(e, t) {
   }
   return r;
 }
-function V1(e, t) {
+function K1(e, t) {
   const n = [
     "必须",
     "务必",
@@ -20904,7 +20906,7 @@ function pu(e, t = 200) {
 `).map((r) => r.trim()).filter(Boolean);
   return n.length <= t ? n : n.slice(0, t);
 }
-function K1(e, t, n = {}) {
+function Y1(e, t, n = {}) {
   const { maxItems: r = 3, maxLen: o = 80 } = n, i = pu(e), s = pu(t), a = new Set(i), l = new Set(s), c = [], d = [];
   for (const f of l)
     a.has(f) || c.push(f);
@@ -20945,7 +20947,7 @@ function ys(e, t, n = 0) {
     if (!Object.prototype.hasOwnProperty.call(t, i) || !ys(e[i], t[i], n + 1)) return !1;
   return !0;
 }
-function Y1(e, t) {
+function J1(e, t) {
   const n = e == null ? void 0 : e.identifier;
   if (typeof n == "string" && n.trim()) return `id:${n.trim()}`;
   const r = e == null ? void 0 : e.name;
@@ -20968,12 +20970,12 @@ function tc(e) {
     injection_trigger: n
   };
 }
-function J1(e) {
+function q1(e) {
   const t = tc(e), n = [];
   return t.role && n.push(`role=${t.role}`), t.injection_position && n.push(`pos=${t.injection_position}`), typeof t.injection_depth == "number" && n.push(`depth=${t.injection_depth}`), t.system_prompt && n.push("system_prompt"), t.marker && n.push("marker"), t.forbid_overrides && n.push("forbid_overrides"), n.join(", ");
 }
-function q1(e) {
-  const t = $n(e), n = Ht(ao(t).replace(/\n+/g, " / "), 120), r = J1(e);
+function X1(e) {
+  const t = $n(e), n = Ht(ao(t).replace(/\n+/g, " / "), 120), r = q1(e);
   return r ? `简述：${JSON.stringify(n)}（${r}）` : `简述：${JSON.stringify(n)}`;
 }
 function uu(e, t) {
@@ -20983,7 +20985,7 @@ function uu(e, t) {
     const m = a / Math.max(1, s);
     m >= 1.18 ? c = `更详细（约 +${Math.max(0, l)} 字符）` : m <= 0.82 && (c = `更精简（约减少 ${Math.abs(l)} 字符）`);
   } else a > 0 && (c = `新增内容（len=${a}）`);
-  const d = V1(n, r), p = K1(n, r, { maxItems: 3, maxLen: 90 }), u = p.addedShown.length ? `新增要点：${p.addedShown.join("；")}` : "", f = p.removedShown.length ? `删减要点：${p.removedShown.join("；")}` : "";
+  const d = K1(n, r), p = Y1(n, r, { maxItems: 3, maxLen: 90 }), u = p.addedShown.length ? `新增要点：${p.addedShown.join("；")}` : "", f = p.removedShown.length ? `删减要点：${p.removedShown.join("；")}` : "";
   return {
     summary: [[c, d.hint].filter(Boolean).join("；"), u, f].filter(Boolean).join("；") || "有变更",
     tone: d,
@@ -20996,10 +20998,10 @@ function uu(e, t) {
 function fu(e) {
   const t = Array.isArray(e) ? e : [], n = /* @__PURE__ */ new Map();
   return t.forEach((r, o) => {
-    n.set(Y1(r, o), r);
+    n.set(J1(r, o), r);
   }), n;
 }
-function X1(e, t) {
+function Q1(e, t) {
   const n = Array.isArray(e) ? e : [], r = Array.isArray(t) ? t : [];
   if (!n.length || !r.length) return [];
   const o = n.map(({ key: p, prompt: u }) => {
@@ -21047,7 +21049,7 @@ function X1(e, t) {
     l.has(p.removedKey) || c.has(p.addedKey) || (l.add(p.removedKey), c.add(p.addedKey), d.push(p));
   return d;
 }
-function Q1(e, t) {
+function Z1(e, t) {
   var k, A;
   const n = e && typeof e == "object" ? e : {}, r = t && typeof t == "object" ? t : {}, o = Array.isArray(n.prompts) ? n.prompts : [], i = Array.isArray(r.prompts) ? r.prompts : [], s = fu(o), a = fu(i);
   let l = [], c = [];
@@ -21056,7 +21058,7 @@ function Q1(e, t) {
     s.has(S) || l.push({ key: S, prompt: v, name: (v == null ? void 0 : v.name) ?? S });
   for (const [S, v] of s.entries())
     a.has(S) || c.push({ key: S, prompt: v, name: (v == null ? void 0 : v.name) ?? S });
-  const u = X1(c, l);
+  const u = Q1(c, l);
   if (u.length) {
     const S = new Map(c.map((w) => [w.key, w])), v = new Map(l.map((w) => [w.key, w]));
     for (const w of u) {
@@ -21126,7 +21128,7 @@ function Q1(e, t) {
     return {
       key: S.key,
       name: ((v = S.prompt) == null ? void 0 : v.name) ?? S.name ?? S.key,
-      summary: q1(S.prompt)
+      summary: X1(S.prompt)
     };
   }), x = c.map((S) => {
     var v;
@@ -21144,7 +21146,7 @@ function Q1(e, t) {
   };
 }
 async function gu({ title: e, facts: t, responseLength: n = 650 }) {
-  const r = await H1();
+  const r = await V1();
   if (!r)
     throw new Error("未检测到 SillyTavern 的 generateQuietPrompt，无法使用 AI 生成 Changelog");
   const o = `
@@ -21270,7 +21272,7 @@ async function bu({ currentName: e, info: t, inputs: n, repo: r, token: o, versi
     );
     y = lu(k);
   }
-  const x = Q1(y, m);
+  const x = Z1(y, m);
   return {
     filePath: a,
     baseLabel: l,
@@ -21282,7 +21284,7 @@ async function bu({ currentName: e, info: t, inputs: n, repo: r, token: o, versi
     diff: x
   };
 }
-function Z1() {
+function e_() {
   const e = _(), t = e("#extensions_settings");
   return t.length ? t : e("#extensions_settings2");
 }
@@ -21294,7 +21296,7 @@ function en() {
     return null;
   }
 }
-function e_() {
+function t_() {
   var n, r, o, i;
   const e = window.parent && window.parent !== window ? window.parent : window;
   if (e.__ptTransferToolsPresetRefreshBound) return;
@@ -21312,16 +21314,16 @@ function e_() {
 }
 function Yr(e) {
   const t = String(e ?? "").trim();
-  return W1.includes(t) ? t : "features";
+  return U1.includes(t) ? t : "features";
 }
-function t_() {
+function n_() {
   try {
     return Yr(localStorage.getItem(Ab));
   } catch {
     return "features";
   }
 }
-function n_(e) {
+function r_(e) {
   try {
     localStorage.setItem(Ab, Yr(e));
   } catch {
@@ -21337,9 +21339,9 @@ function yu(e, { persist: t = !0 } = {}) {
   }), r.find(".pt-transfer-tools-panel").each(function() {
     const i = n(this), a = Yr(i.data("ptTabPanel")) === o;
     i.toggleClass("is-hidden", !a), i.attr("aria-hidden", a ? "false" : "true");
-  }), t && n_(o);
+  }), t && r_(o);
 }
-function r_() {
+function o_() {
   const e = Ai("--SmartThemeEmColor", "currentColor");
   return `
     <div id="${qs}" class="extension_container">
@@ -21542,11 +21544,11 @@ function r_() {
     </div>
   `;
 }
-function o_(e) {
+function i_(e) {
   const t = _();
   t("#pt-enable-entry-states-panel").prop("checked", !!e.entryStatesPanelEnabled), t("#pt-enable-regex-binding").prop("checked", !!e.regexBindingEnabled), t("#pt-enable-regex-script-grouping").prop("checked", !!e.regexScriptGroupingEnabled), t("#pt-enable-entry-grouping").prop("checked", !!e.entryGroupingEnabled), t("#pt-enable-entry-more-btn").prop("checked", !!e.entryMoreBtnEnabled), t("#pt-enable-worldbook-grouping").prop("checked", !!e.worldbookGroupingEnabled), t("#pt-enable-worldbook-entry-grouping").prop("checked", !!e.worldbookEntryGroupingEnabled), t("#pt-enable-worldbook-common").prop("checked", !!e.worldbookCommonEnabled), t("#pt-enable-theme-grouping").prop("checked", !!e.themeGroupingEnabled), t("#pt-enable-preset-list-grouping").prop("checked", !!e.presetListGroupingEnabled);
 }
-function i_(e) {
+function s_(e) {
   const t = String((e == null ? void 0 : e.normalizedBase) ?? "").trim(), r = `${t ? `${t}-v` : "v"}{version}`;
   return { refTemplate: r, tagTemplate: r };
 }
@@ -21559,11 +21561,11 @@ function Ii() {
     tagTemplate: (e("#pt-git-tag-template").val() || "").toString().trim()
   };
 }
-function s_(e) {
+function a_(e) {
   const t = _();
   t("#pt-git-repo-url").val((e == null ? void 0 : e.repoUrl) ?? ""), t("#pt-git-file-path").val((e == null ? void 0 : e.filePath) ?? ""), t("#pt-git-ref-template").val((e == null ? void 0 : e.refTemplate) ?? ""), t("#pt-git-tag-template").val((e == null ? void 0 : e.tagTemplate) ?? "");
 }
-function a_() {
+function l_() {
   hs && (bs[hs] = { ...Ii() });
 }
 function Jr() {
@@ -21578,7 +21580,7 @@ function Jr() {
   hs = o, e("#pt-git-base-hint").text(o ? `当前预设：${r.base || n}` : `当前预设：${n}`);
   const i = !o;
   e("#pt-git-repo-url, #pt-git-file-path, #pt-git-ref-template, #pt-git-tag-template, #pt-git-save-source, #pt-git-clear-source, #pt-switch-version, #pt-view-version-changelog").prop("disabled", i), e("#pt-publish-branch, #pt-publish-version, #pt-publish-token, #pt-publish-changelog, #pt-publish-generate-changelog, #pt-publish-upload").prop("disabled", i);
-  const s = o ? Ki(o) : null, a = o ? bs[o] : null, l = i_(r);
+  const s = o ? Ki(o) : null, a = o ? bs[o] : null, l = s_(r);
   let c = null;
   a ? c = {
     repoUrl: a.repoUrl ?? "",
@@ -21595,13 +21597,13 @@ function Jr() {
     filePath: "",
     refTemplate: l.refTemplate,
     tagTemplate: l.tagTemplate
-  }, s_(c), (e("#pt-publish-branch").val() || "").toString().trim() || e("#pt-publish-branch").val("main"), !(e("#pt-publish-version").val() || "").toString().trim() && (r != null && r.version) && e("#pt-publish-version").val(_e(r.version));
+  }, a_(c), (e("#pt-publish-branch").val() || "").toString().trim() || e("#pt-publish-branch").val("main"), !(e("#pt-publish-version").val() || "").toString().trim() && (r != null && r.version) && e("#pt-publish-version").val(_e(r.version));
 }
-function l_() {
+function c_() {
   const e = _(), t = e(`#${qs}`);
   t.length && (t.off("click.pt-transfer-tools-tabs").on("click.pt-transfer-tools-tabs", ".pt-transfer-tools-tab", function(n) {
     n.preventDefault(), yu(e(this).data("ptTab"), { persist: !0 });
-  }), yu(t_(), { persist: !1 })), e("#pt-enable-entry-states-panel").off("input.pt").on("input.pt", function() {
+  }), yu(n_(), { persist: !1 })), e("#pt-enable-entry-states-panel").off("input.pt").on("input.pt", function() {
     bk(e(this).prop("checked")), qe();
   }), e("#pt-enable-entry-grouping").off("input.pt").on("input.pt", function() {
     yk(e(this).prop("checked")), qe();
@@ -21626,7 +21628,7 @@ function l_() {
   }), e("#pt-enable-preset-git-auto-update").off("input.pt").on("input.pt", function() {
     tx(e(this).prop("checked"));
   }), e("#pt-git-repo-url, #pt-git-file-path, #pt-git-ref-template, #pt-git-tag-template").off("input.pt").on("input.pt", function() {
-    a_();
+    l_();
   }), e("#pt-git-save-source").off("click.pt").on("click.pt", function() {
     try {
       const n = en();
@@ -21713,7 +21715,7 @@ function l_() {
       const f = String(s.tagTemplate || s.refTemplate || "v{version}").trim(), g = Qo(f, u);
       if (!g) throw new Error("无法根据 Tag 模板生成 tag 名称");
       n.prop("disabled", !0);
-      const h = await bu({ currentName: o, info: i, inputs: s, repo: a, token: c, version: u, tagName: g }), m = `Preset: ${h.baseLabel} v${u}`, y = JSON.stringify(h.currentPreset, null, 2), x = await j1({
+      const h = await bu({ currentName: o, info: i, inputs: s, repo: a, token: c, version: u, tagName: g }), m = `Preset: ${h.baseLabel} v${u}`, y = JSON.stringify(h.currentPreset, null, 2), x = await N1({
         owner: a.owner,
         repo: a.repo,
         token: c,
@@ -21723,7 +21725,7 @@ function l_() {
         message: m
       }), k = String(((r = x == null ? void 0 : x.commit) == null ? void 0 : r.sha) ?? "").trim();
       if (!k) throw new Error("上传成功但未返回 commit sha，无法打 tag");
-      await N1({ owner: a.owner, repo: a.repo, token: c, tagName: g, sha: k });
+      await G1({ owner: a.owner, repo: a.repo, token: c, tagName: g, sha: k });
       let A = (e("#pt-publish-changelog").val() || "").toString().trim();
       if (!A) {
         const b = `${h.baseLabel} v${u}`, C = hu({
@@ -21747,7 +21749,7 @@ function l_() {
         }
         A = String(A ?? "").trim(), A && e("#pt-publish-changelog").val(A);
       }
-      const S = await G1({
+      const S = await L1({
         owner: a.owner,
         repo: a.repo,
         token: c,
@@ -21766,7 +21768,7 @@ function l_() {
     try {
       const n = (e("#pt-target-version").val() || "").toString().trim();
       if (!n) throw new Error("请输入目标版本号");
-      e(this).prop("disabled", !0), await F1(n), Jr();
+      e(this).prop("disabled", !0), await W1(n), Jr();
     } catch (n) {
       console.error("切换版本失败", n), window.toastr && toastr.error("切换失败: " + ((n == null ? void 0 : n.message) ?? n));
     } finally {
@@ -21837,17 +21839,17 @@ function l_() {
       }
   });
 }
-function c_() {
-  const e = _(), t = Z1();
+function d_() {
+  const e = _(), t = e_();
   if (!(t != null && t.length)) return !1;
   if (e(`#${qs}`).length) return !0;
-  t.append(r_()), e("#pt-transfer-tools-panel-snapshots").html(z1());
+  t.append(o_()), e("#pt-transfer-tools-panel-snapshots").html(M1());
   const n = sb();
-  return o_(n), Jr(), l_(), e_(), M1().catch((r) => {
+  return i_(n), Jr(), c_(), t_(), B1().catch((r) => {
     console.error("[PresetTransfer] 初始化快照管理面板失败:", r);
   }), !0;
 }
-async function d_(e, t, n, r) {
+async function p_(e, t, n, r) {
   try {
     const o = ee(e, t);
     if (!o) throw new Error("无法获取预设数据");
@@ -21879,9 +21881,9 @@ async function d_(e, t, n, r) {
 }
 const Eb = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
   __proto__: null,
-  saveEntryChanges: d_
+  saveEntryChanges: p_
 }, Symbol.toStringTag, { value: "Module" })), Tb = "#extensionsMenu", wu = "preset-transfer-menu-item", vu = "worldbook-transfer-menu-item", xu = "preset-transfer-global-styles";
-function p_({ pollIntervalMs: e = 500 } = {}) {
+function u_({ pollIntervalMs: e = 500 } = {}) {
   return new Promise((t) => {
     function n() {
       try {
@@ -21898,7 +21900,7 @@ function p_({ pollIntervalMs: e = 500 } = {}) {
     n();
   });
 }
-function u_(e) {
+function f_(e) {
   e(`#${xu}`).remove(), e("head").append(`
       <style id="${xu}">
         @keyframes pt-fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -21998,7 +22000,7 @@ function u_(e) {
       </style>
     `);
 }
-function f_({ MainUI: e } = {}) {
+function g_({ MainUI: e } = {}) {
   try {
     const t = (_ == null ? void 0 : _()) ?? window.jQuery;
     if (!t)
@@ -22038,7 +22040,7 @@ function f_({ MainUI: e } = {}) {
         }
       });
     }
-    return u_(t), console.log("PresetTransfer: 已添加菜单项到扩展菜单"), !0;
+    return f_(t), console.log("PresetTransfer: 已添加菜单项到扩展菜单"), !0;
   } catch (t) {
     return console.error("PresetTransfer: 集成扩展菜单失败", t), !1;
   }
@@ -22063,7 +22065,7 @@ async function zb(e = {}) {
     } catch (d) {
       console.warn("初始化导出清理钩子失败:", d);
     }
-    await p_(), f_({ MainUI: t });
+    await u_(), g_({ MainUI: t });
     try {
       (c = n == null ? void 0 : n.initializeThemeSettings) == null || c.call(n);
     } catch (d) {
@@ -22093,7 +22095,7 @@ async function zb(e = {}) {
     console.error("初始化失败:", d), setTimeout(() => zb(e), l);
   }
 }
-function g_(e = {}) {
+function m_(e = {}) {
   const t = async () => {
     await zb(e);
   };
@@ -22111,10 +22113,10 @@ function g_(e = {}) {
   }
   t();
 }
-function m_(e) {
+function h_(e) {
   window.PresetTransfer = e;
 }
-function h_(e) {
+function b_(e) {
   try {
     for (const t of e)
       if (!(!t || typeof t != "object"))
@@ -22127,7 +22129,7 @@ function h_(e) {
     );
   }
 }
-m_({
+h_({
   Utils: nc,
   APICompat: Xb,
   Constants: Qb,
@@ -22178,7 +22180,7 @@ m_({
   WorldbookCommonPanel: oh,
   WorldbookCommonEventButton: lh
 });
-h_([
+b_([
   nc,
   Iu,
   xc,
@@ -22224,12 +22226,12 @@ h_([
   oh,
   lh
 ]);
-g_({
+m_({
   MainUI: Pd,
   Theme: xc,
   checkForExtensionUpdate: W0,
   initExportSanitizer: X0,
-  initTransferToolsSettingsPanel: c_,
+  initTransferToolsSettingsPanel: d_,
   applyTransferToolFeatureToggles: qe,
   initPresetStitchAutomation: im
 });

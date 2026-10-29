@@ -290,7 +290,8 @@ select option {
     align-items: center;
 }
 
-#preset-transfer-modal #load-entries {
+#preset-transfer-modal #load-entries,
+#preset-transfer-modal #pt-stitch-from-worldbook {
     background: var(--pt-accent-color);
     border: none;
     color: var(--pt-body-color);
@@ -304,11 +305,13 @@ select option {
     will-change: background-color, opacity;
 }
 
-#preset-transfer-modal #load-entries:hover {
+#preset-transfer-modal #load-entries:hover,
+#preset-transfer-modal #pt-stitch-from-worldbook:hover {
     opacity: 0.9;
 }
 
-#preset-transfer-modal #load-entries:active {
+#preset-transfer-modal #load-entries:active,
+#preset-transfer-modal #pt-stitch-from-worldbook:active {
     opacity: 0.8;
 }
 

@@ -5,12 +5,14 @@ import { createWorldbookTransferAdapter } from '../transfer/adapters/worldbook-a
 
 const DIALOG_ID = 'pt-wb-stitch-dialog';
 
+const opaque = color => String(color).replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]*\)/, 'rgb($1,$2,$3)');
+
 function dialogHtml(names) {
     const vars = CommonStyles.getVars();
     const options = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
     return `
-    <div id="${DIALOG_ID}" style="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;">
-      <div style="width:min(560px,100%);max-height:88vh;display:flex;flex-direction:column;gap:10px;padding:16px;box-sizing:border-box;border-radius:14px;background:${vars.bgColor};color:${vars.textColor};border:1px solid ${vars.borderColor};">
+    <div id="${DIALOG_ID}" style="position:fixed;top:0;left:0;width:100vw;height:calc(var(--pt-vh, 1vh) * 100);z-index:100000;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top)) 12px 16px;box-sizing:border-box;">
+      <div style="width:min(560px,100%);max-height:calc(var(--pt-vh, 1vh) * 100 - 40px);margin:auto 0;display:flex;flex-direction:column;gap:10px;padding:16px;box-sizing:border-box;border-radius:14px;background:${opaque(vars.bgColor)};color:${vars.textColor};border:1px solid ${vars.borderColor};">
         <div style="font-weight:600;">从世界书缝入</div>
         <select class="pt-wb-stitch-book" style="width:100%;padding:8px;border-radius:8px;background:${vars.inputBg};color:${vars.textColor};border:1px solid ${vars.inputBorder};">
           <option value="">选一本世界书</option>${options}
@@ -24,7 +26,7 @@ function dialogHtml(names) {
         <div style="font-size:.8em;color:${vars.tipColor};">勾好后点“选位置”，再点预设里的一个条目，缝到它后面（会跟着进它所在的组）。和预设里重名的会自动加上书名，不会盖掉原来的。</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" class="pt-wb-stitch-cancel">取消</button>
-          <button type="button" class="pt-wb-stitch-go" disabled>选位置</button>
+          <button type="button" class="pt-wb-stitch-go" disabled style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;">选位置</button>
         </div>
       </div>
     </div>`;
@@ -61,7 +63,8 @@ export async function openWorldbookStitchDialog(apiInfo) {
     }
 
     $(`#${DIALOG_ID}`).remove();
-    $('body').append(dialogHtml(names));
+    const $host = $('#preset-transfer-modal');
+    ($host.length ? $host : $('body')).append(dialogHtml(names));
     const $dialog = $(`#${DIALOG_ID}`);
     let entries = [];
     let bookName = '';
