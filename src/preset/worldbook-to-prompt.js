@@ -1,4 +1,3 @@
-const ROLE_BY_WI_ROLE = ['system', 'user', 'assistant'];
 const WI_POSITION_AT_DEPTH = 4;
 
 function entryName(entry) {
@@ -15,7 +14,7 @@ export function worldEntryToPrompt(entry) {
     return {
         name: entryName(entry),
         content: String(entry?.content ?? ''),
-        role: atDepth ? ROLE_BY_WI_ROLE[Number(entry?.role)] || 'system' : 'system',
+        role: 'system',
         system_prompt: false,
         marker: false,
         forbid_overrides: false,

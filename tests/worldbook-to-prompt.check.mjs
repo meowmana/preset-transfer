@@ -6,7 +6,7 @@ const atDepth = worldEntryToPrompt({ uid: 3, comment: ' 文风·冷 ', content: 
 assert.equal(atDepth.name, '文风·冷');
 assert.equal(atDepth.injection_position, 1);
 assert.equal(atDepth.injection_depth, 2);
-assert.equal(atDepth.role, 'assistant');
+assert.equal(atDepth.role, 'system');
 
 const relative = worldEntryToPrompt({ uid: 7, comment: '', content: '\n  第一行很长很长很长很长很长很长很长很长很长\n第二行', position: 0, role: 1 });
 assert.equal(relative.name, '第一行很长很长很长很长很长很长很长很长很');
