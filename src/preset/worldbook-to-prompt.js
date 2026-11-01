@@ -1,5 +1,3 @@
-const WI_POSITION_AT_DEPTH = 4;
-
 function entryName(entry) {
     const comment = String(entry?.comment ?? '').trim();
     if (comment) return comment;
@@ -9,8 +7,6 @@ function entryName(entry) {
 }
 
 export function worldEntryToPrompt(entry) {
-    const atDepth = Number(entry?.position) === WI_POSITION_AT_DEPTH;
-    const depth = Number(entry?.depth);
     return {
         name: entryName(entry),
         content: String(entry?.content ?? ''),
@@ -18,8 +14,8 @@ export function worldEntryToPrompt(entry) {
         system_prompt: false,
         marker: false,
         forbid_overrides: false,
-        injection_position: atDepth ? 1 : 0,
-        injection_depth: atDepth && Number.isFinite(depth) ? depth : 4,
+        injection_position: 0,
+        injection_depth: 4,
     };
 }
 

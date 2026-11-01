@@ -4,8 +4,7 @@ import { avoidNameCollisions, worldEntryToPrompt } from '../src/preset/worldbook
 
 const atDepth = worldEntryToPrompt({ uid: 3, comment: ' 文风·冷 ', content: '句子短。', position: 4, depth: 2, role: 2 });
 assert.equal(atDepth.name, '文风·冷');
-assert.equal(atDepth.injection_position, 1);
-assert.equal(atDepth.injection_depth, 2);
+assert.equal(atDepth.injection_position, 0);
 assert.equal(atDepth.role, 'system');
 
 const relative = worldEntryToPrompt({ uid: 7, comment: '', content: '\n  第一行很长很长很长很长很长很长很长很长很长\n第二行', position: 0, role: 1 });
