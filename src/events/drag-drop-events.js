@@ -163,6 +163,10 @@ function initDragDrop(apiInfo) {
 
     const MOVE_THRESHOLD = 4 * 4;
 
+    if (distSq > 10 * 10) {
+      activeDragContext.moved = true;
+    }
+
     if (!activeDragContext.started) {
       if (distSq > MOVE_THRESHOLD) {
         // 如果移动超过阈值，且尚未开始拖拽（长按未触发），则认为是滚动操作，取消拖拽等待
@@ -203,9 +207,11 @@ function initDragDrop(apiInfo) {
     clearTimers();
 
     const wasStarted = activeDragContext.started;
+    const heldStill = activeDragContext.isTouch && !activeDragContext.moved;
     activeDragContext = null;
 
-    if (!wasStarted) {
+    if (!wasStarted || heldStill) {
+      $('#preset-transfer-modal').removeClass('pt-dragging');
       DragDropCore.cancelDrag();
       DragDropUI.clearDropIndicator();
       DragDropUI.clearDragSources();

@@ -5,6 +5,7 @@ import { CommonStyles } from '../styles/common-styles.js';
 import { createWorldbookTransferAdapter } from '../transfer/adapters/worldbook-adapter.js';
 import { makeSearchableSelect } from './searchable-select.js';
 import { createWorldbookEditEntryModal } from '../worldbook/edit-modal.js';
+import { bindRangeSelect } from './range-select.js';
 
 const DIALOG_ID = 'pt-wb-stitch-dialog';
 
@@ -42,7 +43,7 @@ function dialogHtml(names, pinnedNames) {
           <span class="pt-wb-stitch-count" style="margin-left:auto;color:${vars.tipColor};"></span>
         </div>
         <div class="pt-wb-stitch-list" style="flex:1;min-height:120px;overflow-y:auto;overflow-x:hidden;border:1px solid ${vars.borderColor};border-radius:8px;padding:4px;"></div>
-        <div class="pt-wb-stitch-tip" style="font-size:.8em;color:${vars.tipColor};">勾上条目，点下面预设里的条目，缝到它后面。缝完接着勾下一条。</div>
+        <div class="pt-wb-stitch-tip" style="font-size:.8em;color:${vars.tipColor};">勾上条目，点下面预设里的条目，缝到它后面。缝完接着勾下一条。长按一条当起点、再点另一条，中间全勾上。</div>
         <div style="display:flex;gap:8px;justify-content:flex-end;">
           <button type="button" class="pt-wb-stitch-cancel" style="background:var(--pt-accent-color);color:var(--pt-body-color);border:none;border-radius:8px;padding:6px 16px;font-weight:600;box-shadow:none;">缝完了，关掉</button>
         </div>
@@ -175,6 +176,11 @@ export async function openWorldbookStitchDialog(apiInfo) {
     $dialog.find('.pt-wb-stitch-all').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', true); updateCount(); });
     $dialog.find('.pt-wb-stitch-none').on('click', () => { $dialog.find('.pt-wb-stitch-pick').prop('checked', false); updateCount(); });
     $dialog.on('change', '.pt-wb-stitch-pick', updateCount);
+    bindRangeSelect($dialog.find('.pt-wb-stitch-list')[0], {
+        itemSelector: 'label',
+        checkboxSelector: '.pt-wb-stitch-pick',
+        ignoreSelector: '.pt-wb-stitch-edit, button',
+    });
 
     $dialog.on('click', '.pt-wb-stitch-edit', async function (e) {
         e.preventDefault();

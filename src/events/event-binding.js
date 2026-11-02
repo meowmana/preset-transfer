@@ -18,6 +18,7 @@ import { createWorldbookBatchManageModal } from '../worldbook/batch-delete.js';
 import { loadSearchSettings, updateSearchSettings } from '../settings/search-settings.js';
 import { initDragDrop } from './drag-drop-events.js';
 import { openWorldbookStitchDialog } from '../ui/worldbook-stitch-dialog.js';
+import { bindRangeSelect } from '../ui/range-select.js';
 function bindTransferEvents(apiInfo, modal) {
   const $ = getJQuery();
   const leftSelect = $('#left-preset');
@@ -531,6 +532,22 @@ function bindTransferEvents(apiInfo, modal) {
     $list.children('.entry-item:visible').find('.entry-checkbox').prop('checked', !!checked);
     updateSelectionCount();
   }
+
+  const isPickingTarget = side =>
+    (window.transferMode &&
+      (!window.transferMode.toSide || window.transferMode.toSide === side || window.transferMode.toSide === 'any')) ||
+    window.newEntryMode?.side === side ||
+    window.moveMode?.side === side ||
+    (window.ptWorldbookPickTarget && getActiveTransferAdapter()?.id === 'worldbook');
+
+  ['left', 'right', 'single'].forEach(side => {
+    bindRangeSelect(document.getElementById(`${side}-entries-list`), {
+      itemSelector: '.entry-item:not(.position-item)',
+      checkboxSelector: '.entry-checkbox',
+      ignoreSelector: '.create-here-btn, .pt-favorite-toggle, button',
+      canSelect: () => !isPickingTarget(side),
+    });
+  });
 
   $('#left-select-all').on('click', () => {
     setVisibleSelections('left', true);
