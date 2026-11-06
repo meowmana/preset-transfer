@@ -2,6 +2,7 @@
 
 import { PT } from '../core/api-compat.js';
 import { getRegexBindingEnabled, switchPresetRegexes } from './regex-binding.js';
+import { applyReasoningBinding, getReasoningBinding, installReasoningBindingSaveHook } from './reasoning-binding.js';
 import { getCurrentApiInfo, getJQuery, getParentWindow } from '../core/utils.js';
 import { updatePresetRegexStatus } from '../ui/regex-ui.js';
 import {
@@ -54,6 +55,8 @@ let globalPresetListener = {
           }
         }, 0);
       }
+
+      installReasoningBindingSaveHook();
 
       this.isActive = true;
     } catch (error) {
@@ -335,6 +338,14 @@ let globalPresetListener = {
           }
         } catch (e) {
           console.warn('正则切换失败（已忽略）:', e);
+        }
+      }
+
+      if (toPreset) {
+        try {
+          applyReasoningBinding(toPreset, getReasoningBinding(PT.API.getPreset?.(toPreset)));
+        } catch (e) {
+          console.warn('解析方案切换失败（已忽略）:', e);
         }
       }
 
