@@ -1,6 +1,6 @@
 // 推理解析方案跟预设走：存预设时把当前方案写进 preset.extensions，切到该预设时换上
 import { PT } from '../core/api-compat.js';
-import { extractPresetVersionInfo } from '../core/preset-name-utils.js';
+import { normalizePresetBaseName } from '../core/preset-name-utils.js';
 import { getCurrentApiInfo, getJQuery, getSillyTavernContext } from '../core/utils.js';
 
 const KEY = 'ptReasoningBinding';
@@ -57,15 +57,32 @@ function compareVersions(a, b) {
   return 0;
 }
 
+// 名字按第一个版本号切：“万事成真v1.41_2”“万事成真_v1.3_缝好版”都认成“万事成真”
+export function splitAtFirstVersion(presetName) {
+  const raw = String(presetName ?? '');
+  for (const m of raw.matchAll(/v?\d+(?:\.\d+){1,3}|v\d+/gi)) {
+    const before = raw[m.index - 1];
+    if (before && /[a-z0-9]/i.test(before)) continue;
+    const base = normalizePresetBaseName(raw.slice(0, m.index));
+    if (base) return { base, version: m[0].replace(/^v/i, '') };
+  }
+  return { base: '', version: null };
+}
+
+function sameFamily(a, b) {
+  if (a === b) return true;
+  return Math.min(a.length, b.length) >= 2 && (a.startsWith(b) || b.startsWith(a));
+}
+
 // 自己没绑过时，找同名不同版本里绑过的，取版本号最高的那个
 export function findSiblingReasoningBinding(presetName) {
-  const info = extractPresetVersionInfo(presetName);
-  if (!info.version || !info.normalizedBase) return null;
+  const info = splitAtFirstVersion(presetName);
+  if (!info.version) return null;
   let best = null;
   for (const name of getCurrentApiInfo()?.presetNames ?? []) {
     if (name === presetName) continue;
-    const other = extractPresetVersionInfo(name);
-    if (!other.version || other.normalizedBase !== info.normalizedBase) continue;
+    const other = splitAtFirstVersion(name);
+    if (!other.version || !sameFamily(other.base, info.base)) continue;
     const bound = getReasoningBinding(PT.API.getPreset?.(name));
     if (!bound?.prefix || !bound?.suffix) continue;
     if (!best || compareVersions(other.version, best.version) > 0) best = { name, version: other.version, bound };
