@@ -3,6 +3,7 @@ import { ensureNewVersionFields } from './new-version-fields.js';
 import { getOrCreateDummyCharacterPromptOrder } from './prompt-order-utils.js';
 import { buildEntrySignature, getNameMatchKey } from './entry-match-utils.js';
 import { getStitchId, isStitchEntry, readPresetTransferMeta } from './stitch-meta.js';
+import { carryReasoningBinding, readReasoningBinding } from './reasoning-carry.js';
 
 const DUMMY_CHARACTER_ID = 100001;
 const STITCH_PATCH_SCHEMA_VERSION = 1;
@@ -357,6 +358,7 @@ function extractStitchPatch(presetData, options = {}) {
     createdAt: new Date().toISOString(),
     runs,
     uninserted,
+    reasoningBinding: readReasoningBinding(presetData),
   };
 }
 
@@ -568,8 +570,10 @@ function applyStitchPatch(targetData, patch, options = {}) {
   }
 
   const groupedStitches = tagStitchesIntoBaibaiGroups(targetData, stitchGroups);
+  const reasoningCarried = carryReasoningBinding(patch.reasoningBinding, targetData);
 
   return {
+    reasoningCarried,
     addedPrompts,
     updatedPrompts,
     insertedOrder,

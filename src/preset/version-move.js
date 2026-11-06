@@ -1,6 +1,7 @@
 import { ensureUniqueIdentifier } from '../core/utils.js';
 import { getNameMatchKey } from './entry-match-utils.js';
 import { applyStitchPatch, extractStitchPatch } from './stitch-patch.js';
+import { carryReasoningBinding, readReasoningBinding } from './reasoning-carry.js';
 import { assignNewStitchMeta, getStitchId, isStitchEntry, PT_META_FIELD, PT_META_NAMESPACE } from './stitch-meta.js';
 
 const DUMMY_CHARACTER_ID = 100001;
@@ -122,7 +123,9 @@ function applyVersionMove(oldData, newData, plan, choices = {}) {
     copied += 1;
   }
 
-  return { moved: moved.addedPrompts + moved.updatedPrompts, grouped: moved.groupedStitches ?? 0, copied, overwritten };
+  const reasoningCarried = carryReasoningBinding(readReasoningBinding(oldData), newData) || !!moved.reasoningCarried;
+
+  return { moved: moved.addedPrompts + moved.updatedPrompts, grouped: moved.groupedStitches ?? 0, copied, overwritten, reasoningCarried };
 }
 
 export { planVersionMove, applyVersionMove };

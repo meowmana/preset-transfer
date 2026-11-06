@@ -1,5 +1,7 @@
 // 推理解析方案跟预设走：存预设时把当前方案写进 preset.extensions，切到该预设时换上
-import { getJQuery, getSillyTavernContext } from '../core/utils.js';
+import { PT } from '../core/api-compat.js';
+import { extractPresetVersionInfo } from '../core/preset-name-utils.js';
+import { getCurrentApiInfo, getJQuery, getSillyTavernContext } from '../core/utils.js';
 
 const KEY = 'ptReasoningBinding';
 const SAVE_BUTTONS = '#update_oai_preset, #new_oai_preset';
@@ -46,7 +48,39 @@ export function getReasoningBinding(preset) {
   return preset?.extensions?.[KEY] ?? null;
 }
 
-export function applyReasoningBinding(presetName, bound) {
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0);
+  }
+  return 0;
+}
+
+// 自己没绑过时，找同名不同版本里绑过的，取版本号最高的那个
+export function findSiblingReasoningBinding(presetName) {
+  const info = extractPresetVersionInfo(presetName);
+  if (!info.version || !info.normalizedBase) return null;
+  let best = null;
+  for (const name of getCurrentApiInfo()?.presetNames ?? []) {
+    if (name === presetName) continue;
+    const other = extractPresetVersionInfo(name);
+    if (!other.version || other.normalizedBase !== info.normalizedBase) continue;
+    const bound = getReasoningBinding(PT.API.getPreset?.(name));
+    if (!bound?.prefix || !bound?.suffix) continue;
+    if (!best || compareVersions(other.version, best.version) > 0) best = { name, version: other.version, bound };
+  }
+  return best;
+}
+
+export function resolveReasoningBinding(presetName, preset) {
+  const own = getReasoningBinding(preset);
+  if (own?.prefix && own?.suffix) return { bound: own, from: null };
+  const sib = findSiblingReasoningBinding(presetName);
+  return sib ? { bound: sib.bound, from: sib.name } : { bound: null, from: null };
+}
+
+export function applyReasoningBinding(presetName, bound, from = null) {
   try {
     if (!bound || !bound.prefix || !bound.suffix) return false;
 
@@ -63,10 +97,20 @@ export function applyReasoningBinding(presetName, bound) {
     if (after.suffix !== bound.suffix) $('#reasoning_suffix').val(bound.suffix).trigger('input');
     if (after.separator !== bound.separator) $('#reasoning_separator').val(bound.separator).trigger('input');
 
-    window.toastr?.info?.(`解析方案已换成 ${bound.name || bound.prefix}`, presetName || '');
+    window.toastr?.info?.(`解析方案已换成 ${bound.name || bound.prefix}${from ? `（沿用「${from}」）` : ''}`, presetName || '');
     return true;
   } catch (e) {
     console.warn('应用解析方案绑定失败:', e);
+    return false;
+  }
+}
+
+// 缝合/搬迁改的是存档里的预设；它正好是当前预设时，切换事件早过了，得手动换上一次
+export function applyReasoningBindingIfCurrent(presetName, presetData) {
+  try {
+    if (getSillyTavernContext().chatCompletionSettings?.preset_settings_openai !== presetName) return false;
+    return applyReasoningBinding(presetName, getReasoningBinding(presetData));
+  } catch {
     return false;
   }
 }

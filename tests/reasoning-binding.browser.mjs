@@ -1,4 +1,4 @@
-// 跑法：node tests/reasoning-binding.browser.mjs —— 要本机测试酒馆(8123)，会改写预设“插班测试”“跳动测试”的 extensions，“兜底测试”不能带绑定
+// 跑法：node tests/reasoning-binding.browser.mjs —— 要本机测试酒馆(8123)，会改写预设“插班测试”“跳动测试”的 extensions，“兜底测试”“同名测试 v1.27”不能带绑定，还会改写“同名测试 v1.26”
 import { createRequire } from 'module';
 const puppeteer = createRequire('/home/admin/scripts/paper-anim/web/')('puppeteer-core');
 const browser = await puppeteer.launch({ executablePath: '/usr/local/bin/google-chrome', headless: 'new', args: ['--no-sandbox'] });
@@ -34,6 +34,12 @@ await pick('跳动测试'); await sleep(2500);
 expect('切到跳动测试换成 thinking', (await fix()) === '<thinking>|</thinking>', await fix());
 await pick('兜底测试'); await sleep(2500);
 expect('没绑定的预设不动', (await fix()) === '<thinking>|</thinking>', await fix());
+
+await pick('同名测试 v1.26'); await sleep(2500);
+await setFix('<raindrop>', '</raindrop>'); await save(); await sleep(2500);
+await pick('跳动测试'); await sleep(2500);
+await pick('同名测试 v1.27'); await sleep(2500);
+expect('没绑过的同名旧版沿用绑过的那版', (await fix()) === '<raindrop>|</raindrop>', await fix());
 
 const fs = await import('fs');
 const disk = JSON.parse(fs.readFileSync('/home/ubuntu/st-test/SillyTavern/data/default-user/OpenAI Settings/插班测试.json', 'utf8'));

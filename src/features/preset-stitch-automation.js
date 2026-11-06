@@ -1,3 +1,4 @@
+import { applyReasoningBindingIfCurrent } from './reasoning-binding.js';
 import { PT } from '../core/api-compat.js';
 import { getCurrentApiInfo, getParentWindow, getSillyTavernContext } from '../core/utils.js';
 import { arePresetsSameDifferentVersion, extractPresetVersionInfo } from '../core/preset-name-utils.js';
@@ -323,6 +324,7 @@ async function applyStitchesPatchToPreset(apiInfo, patch, targetPresetName, opti
   const applied = applyStitchPatch(targetData, patch, { insertedEnabled });
 
   await apiInfo.presetManager.savePreset(targetPresetName, targetData);
+  applyReasoningBindingIfCurrent(targetPresetName, targetData);
 
   if (showSuccessToast && window.toastr) {
     window.toastr.success(
@@ -357,6 +359,7 @@ async function migrateStitches(apiInfo, sourcePresetName, targetPresetName, opti
   }
 
   await apiInfo.presetManager.savePreset(targetPresetName, targetData);
+  applyReasoningBindingIfCurrent(targetPresetName, targetData);
 
   if (switchToTarget) {
     try {
@@ -439,6 +442,7 @@ async function maybeAutoMigrateOnImport(apiInfo, newPresetName) {
     if (candidates.length > 0) {
       if (await runVersionMove(newPresetName, targetData, candidates, '[导入自动] ')) {
         await apiInfo.presetManager.savePreset(newPresetName, targetData);
+        applyReasoningBindingIfCurrent(newPresetName, targetData);
       }
       return true;
     }
