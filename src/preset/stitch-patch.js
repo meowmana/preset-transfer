@@ -1,4 +1,4 @@
-import { ensureUniqueIdentifier } from '../core/utils.js';
+import { cloneDeep, ensureUniqueIdentifier } from '../core/utils.js';
 import { ensureNewVersionFields } from './new-version-fields.js';
 import { getOrCreateDummyCharacterPromptOrder } from './prompt-order-utils.js';
 import { buildEntrySignature, getNameMatchKey } from './entry-match-utils.js';
@@ -7,14 +7,6 @@ import { carryReasoningBinding, readReasoningBinding } from './reasoning-carry.j
 
 const DUMMY_CHARACTER_ID = 100001;
 const STITCH_PATCH_SCHEMA_VERSION = 1;
-
-function cloneDeep(value) {
-  try {
-    return structuredClone(value);
-  } catch {
-    return JSON.parse(JSON.stringify(value));
-  }
-}
 
 function sanitizePromptForSave(prompt) {
   const cleaned = ensureNewVersionFields(prompt);

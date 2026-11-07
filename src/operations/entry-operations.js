@@ -1,4 +1,4 @@
-import { getJQuery } from '../core/utils.js';
+import { cloneDeep, getJQuery } from '../core/utils.js';
 import { NEW_FIELD_DEFAULTS } from '../core/constants.js';
 import { getSelectedEntries, loadAndDisplayEntries } from '../display/entry-display.js';
 import { getSelectedGroups } from '../display/entry-group-display.js';
@@ -9,6 +9,9 @@ import { performTransfer } from './core-operations.js';
 import { getPresetDataFromManager, getPromptEntries } from '../preset/preset-manager.js';
 import { ensureNewVersionFields } from '../preset/new-version-fields.js';
 import { avoidNameCollisions } from '../preset/worldbook-to-prompt.js';
+import { applyCopyEntryToPreset } from '../core/preset-data-pure.js';
+import { syncNativePromptManagerIfActive } from '../preset/native-sync.js';
+import { notify } from '../core/notify.js';
 
 let worldInfoModulePromise = null;
 
@@ -27,15 +30,6 @@ function getFreeWorldEntryUidFallback(data) {
   return uid;
 }
 
-function cloneDeepFallback(value) {
-  try {
-    if (typeof structuredClone === 'function') return structuredClone(value);
-  } catch {
-    // ignore
-  }
-  return JSON.parse(JSON.stringify(value));
-}
-
 async function createNewWorldbookEntry(apiInfo, side) {
   const $ = getJQuery();
   const adapter = getActiveTransferAdapter();
@@ -52,7 +46,7 @@ async function createNewWorldbookEntry(apiInfo, side) {
     worldbookName = $(`#${side}-preset`).val();
   }
   if (!worldbookName) {
-    alert('请先选择世界书');
+    notify.warning('请先选择世界书');
     return;
   }
 
@@ -103,7 +97,7 @@ async function createNewWorldbookEntry(apiInfo, side) {
               triggers: [],
             };
 
-      newEntry = { uid, ...cloneDeepFallback(baseTemplate) };
+      newEntry = { uid, ...cloneDeep(baseTemplate) };
       data.entries[String(uid)] = newEntry;
     }
 
@@ -112,7 +106,7 @@ async function createNewWorldbookEntry(apiInfo, side) {
     }
 
     await mod.saveWorldInfo(worldbookName, data, true);
-    await loadAndDisplayEntries(apiInfo);
+    await loadAndDisplayEntries(apiInfo, side || 'both');
 
     createWorldbookEditEntryModal(apiInfo, worldbookName, {
       identifier: String(newEntry.uid),
@@ -122,7 +116,7 @@ async function createNewWorldbookEntry(apiInfo, side) {
     });
   } catch (error) {
     console.error('新建世界书条目失败:', error);
-    alert('新建世界书条目失败: ' + error.message);
+    notify.error('新建世界书条目失败: ' + error.message);
   }
 }
 async function startTransferMode(apiInfo, fromSide, toSide) {
@@ -135,13 +129,13 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
   const transferableEntries = selectedEntries.filter(entry => !entry.marker);
 
   if (transferableEntries.length === 0 && selectedEntries.length > 0) {
-    alert('选中的条目都是 Marker 类型，无法转移（Marker 条目没有实际内容）');
+    notify.warning('选中的条目都是 Marker 类型，无法转移（Marker 条目没有实际内容）');
     return;
   }
 
   if (transferableEntries.length < selectedEntries.length) {
     const markerCount = selectedEntries.length - transferableEntries.length;
-    alert(`已自动排除 ${markerCount} 个 Marker 类型的条目，它们不能转移`);
+    notify.info(`已自动排除 ${markerCount} 个 Marker 类型的条目，它们不能转移`);
   }
 
   let sourceContainer =
@@ -152,7 +146,7 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
       : String($(`#${fromSide}-preset`).val() ?? '').trim();
 
   if (transferableEntries.length === 0) {
-    alert('请至少选择一个条目进行转移');
+    notify.warning('请至少选择一个条目进行转移');
     return;
   }
 
@@ -162,7 +156,7 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
       transferableEntries.map(entry => String(entry?.ptFavoriteContainer ?? '').trim()).filter(Boolean),
     );
     if (sourceNames.size === 0) {
-      alert('无法确定源预设');
+      notify.warning('无法确定源预设');
       return;
     }
     // 如果只有一个源预设，使用它；否则保持为空，后续按条目分别处理
@@ -176,12 +170,12 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
   // 不支持插入位置的适配器：需要预先确定目标
   if (!adapter.capabilities.supportsInsertPosition) {
     if (!toSide) {
-      alert('请先选择目标预设');
+      notify.warning('请先选择目标预设');
       return;
     }
     const toPreset = toSide === 'single' ? window.singlePresetName : $(`#${toSide}-preset`).val();
     if (!toPreset) {
-      alert('请选择目标预设');
+      notify.warning('请选择目标预设');
       return;
     }
 
@@ -203,10 +197,10 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
         return;
       }
 
-      await loadAndDisplayEntries(apiInfo);
+      await loadAndDisplayEntries(apiInfo, toSide || 'both');
     } catch (error) {
       console.error('转移失败:', error);
-      alert('转移失败: ' + error.message);
+      notify.error('转移失败: ' + error.message);
     }
     return;
   }
@@ -223,10 +217,10 @@ async function startTransferMode(apiInfo, fromSide, toSide) {
 
   // 更新UI提示
   if (toSide) {
-    alert(`转移模式已激活！请点击${toSide === 'left' ? '左侧' : toSide === 'right' ? '右侧' : '目标'}面板中的条目来选择插入位置。`);
+    notify.info(`转移模式已激活！请点击${toSide === 'left' ? '左侧' : toSide === 'right' ? '右侧' : '目标'}面板中的条目来选择插入位置。`);
     $(`#${toSide}-side`).addClass('transfer-target');
   } else {
-    alert('转移模式已激活！请点击目标面板中的条目来选择插入位置。');
+    notify.info('转移模式已激活！请点击目标面板中的条目来选择插入位置。');
     $('#left-side, #right-side, #single-container').addClass('transfer-target');
   }
 
@@ -246,7 +240,7 @@ function startNewEntryMode(apiInfo, side) {
   }
 
   if (!presetName) {
-    alert('请先选择预设');
+    notify.warning('请先选择预设');
     return;
   }
 
@@ -259,7 +253,7 @@ function startNewEntryMode(apiInfo, side) {
 
   // 更新UI提示
   let sideText = side === 'single' ? '当前' : side === 'left' ? '左侧' : '右侧';
-  alert(`新建模式已激活！请点击${sideText}面板中的条目来选择插入位置。`);
+  notify.info(`新建模式已激活！请点击${sideText}面板中的条目来选择插入位置。`);
 
   // 高亮当前面板
   $(`#${side}-side`).addClass('new-entry-target');
@@ -339,7 +333,7 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
       if (errors.length > 0) {
         const errorMsg = errors.map(e => `从 ${e.source}: ${e.error.message}`).join('\n');
         console.error('部分转移失败:', errors);
-        alert(`部分转移失败:\n${errorMsg}`);
+        notify.error(`部分转移失败:\n${errorMsg}`);
       }
     } else {
       // 单源预设情况
@@ -365,10 +359,10 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
     }
 
     // 刷新界面
-    await loadAndDisplayEntries(apiInfo);
+    await loadAndDisplayEntries(apiInfo, toSide || 'both');
   } catch (error) {
     console.error('转移失败:', error);
-    alert('转移失败: ' + error.message);
+    notify.error('转移失败: ' + error.message);
   } finally {
     // 重置转移模式
     window.transferMode = null;
@@ -432,29 +426,19 @@ function executeNewEntryAtPosition(apiInfo, side, targetPosition) {
 async function copyEntryBetweenPresets(apiInfo, fromPreset, toPreset, entryData, entryName) {
   try {
     const toPresetData = getPresetDataFromManager(apiInfo, toPreset);
-    const targetPromptIndex = toPresetData.prompts.findIndex(
-      p => p && p.name === entryName && !p.system_prompt && !p.marker,
-    );
-
-    if (targetPromptIndex === -1) {
-      throw new Error(`在预设 "${toPreset}" 中未找到目标条目 "${entryName}"`);
+    if (!toPresetData) {
+      throw new Error(`无法获取预设 "${toPreset}" 的数据`);
     }
 
-    const originalIdentifier = toPresetData.prompts[targetPromptIndex].identifier;
-    const newPromptData = ensureNewVersionFields(entryData);
+    const { targetData: updatedPresetData } = applyCopyEntryToPreset(toPresetData, entryName, entryData);
 
-    // Replace the old prompt object with the new one, preserving the identifier
-    toPresetData.prompts[targetPromptIndex] = {
-      ...newPromptData,
-      identifier: originalIdentifier,
-    };
-
-    await apiInfo.presetManager.savePreset(toPreset, toPresetData);
+    await apiInfo.presetManager.savePreset(toPreset, updatedPresetData, { skipUpdate: true });
+    await syncNativePromptManagerIfActive(apiInfo, toPreset, updatedPresetData);
 
     // 成功覆盖，无需弹窗提示
 
     // 刷新主界面和比较界面
-    await loadAndDisplayEntries(apiInfo);
+    await loadAndDisplayEntries(apiInfo, 'right');
     const $ = getJQuery();
     $('#compare-modal').remove();
     // 重新打开比较模态框以显示更新后的状态
@@ -462,7 +446,7 @@ async function copyEntryBetweenPresets(apiInfo, fromPreset, toPreset, entryData,
     showCompareModal(apiInfo);
   } catch (error) {
     console.error('覆盖条目失败:', error);
-    alert('覆盖条目失败: ' + error.message);
+    notify.error('覆盖条目失败: ' + error.message);
   }
 }
 
@@ -473,7 +457,7 @@ function editEntryInPreset(apiInfo, presetName, entryData, entryName, fromCompar
   const entryIndex = entries.findIndex(e => e.name === entryName);
 
   if (entryIndex === -1) {
-    alert('条目未找到');
+    notify.warning('条目未找到');
     return;
   }
 
@@ -498,13 +482,13 @@ function editSelectedEntry(apiInfo, side) {
   }
 
   if (!presetName) {
-    alert(`请先选择${adapter?.ui?.containerLabel ?? '预设'}`);
+    notify.warning(`请先选择${adapter?.ui?.containerLabel ?? '预设'}`);
     return;
   }
 
   if (adapter.id === 'worldbook') {
     if (selectedEntries.length === 0) {
-      alert('请选择要编辑的条目');
+      notify.warning('请选择要编辑的条目');
       return;
     }
     if (selectedEntries.length === 1) {
@@ -518,7 +502,7 @@ function editSelectedEntry(apiInfo, side) {
 
   // 合并的编辑逻辑：根据选择数量自动决定是单独编辑还是批量编辑
   if (selectedEntries.length === 0) {
-    alert('请选择要编辑的条目');
+    notify.warning('请选择要编辑的条目');
     return;
   } else if (selectedEntries.length === 1) {
     // 单独编辑
@@ -526,7 +510,7 @@ function editSelectedEntry(apiInfo, side) {
 
     // 检查是否为 marker 类型条目
     if (entry.marker) {
-      alert('Marker 类型的条目不能编辑内容，它们的内容来自其他地方（如世界书）');
+      notify.info('Marker 类型的条目不能编辑内容，它们的内容来自其他地方（如世界书）');
       return;
     }
 
@@ -538,17 +522,17 @@ function editSelectedEntry(apiInfo, side) {
     const editableEntries = selectedEntries.filter(entry => !entry.marker);
 
     if (editableEntries.length === 0) {
-      alert('选中的条目都是 Marker 类型，无法编辑内容');
+      notify.warning('选中的条目都是 Marker 类型，无法编辑内容');
       return;
     }
 
     if (editableEntries.length < selectedEntries.length) {
       const markerCount = selectedEntries.length - editableEntries.length;
-      alert(`已自动排除 ${markerCount} 个 Marker 类型的条目，它们不能编辑内容`);
+      notify.info(`已自动排除 ${markerCount} 个 Marker 类型的条目，它们不能编辑内容`);
     }
 
-    BatchEditor.showBatchEditDialog(editableEntries, modifications => {
-      applyBatchModificationsToSide(side, editableEntries, modifications, apiInfo);
+    BatchEditor.showBatchEditDialog(editableEntries, async modifications => {
+      return await applyBatchModificationsToSide(side, editableEntries, modifications, apiInfo);
     });
   }
 }
