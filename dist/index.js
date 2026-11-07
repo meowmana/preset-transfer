@@ -7773,7 +7773,7 @@ async function Bg() {
 async function Bv() {
   var e, t, n;
   try {
-    const { eventSource: r, event_types: o } = await import("../../../../../script.js"), i = de(), s = (i == null ? void 0 : i.mainApi) === "koboldhorde" ? "kobold" : (i == null ? void 0 : i.mainApi) ?? "", a = ((n = (t = (e = i == null ? void 0 : i.getPresetManager) == null ? void 0 : e.call(i, s)) == null ? void 0 : t.getSelectedPresetName) == null ? void 0 : n.call(t)) ?? "";
+    const { eventSource: r, event_types: o } = await import("../../../../script.js"), i = de(), s = (i == null ? void 0 : i.mainApi) === "koboldhorde" ? "kobold" : (i == null ? void 0 : i.mainApi) ?? "", a = ((n = (t = (e = i == null ? void 0 : i.getPresetManager) == null ? void 0 : e.call(i, s)) == null ? void 0 : t.getSelectedPresetName) == null ? void 0 : n.call(t)) ?? "";
     await r.emit(o.PRESET_CHANGED, {
       apiId: s,
       name: a
@@ -12781,17 +12781,20 @@ function sr(e) {
   return typeof e != "string" ? "" : e.trim().replace(/^[vV]/, "").trim();
 }
 function Ip(e) {
-  const n = sr(e).match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
-  return n ? [
+  const t = sr(e), n = t.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!n) return null;
+  const r = t.match(/-tong\.(\d+)/);
+  return [
     parseInt(n[1] ?? "0", 10),
     parseInt(n[2] ?? "0", 10),
-    parseInt(n[3] ?? "0", 10)
-  ] : null;
+    parseInt(n[3] ?? "0", 10),
+    r ? parseInt(r[1], 10) : 0
+  ];
 }
 function xl(e, t) {
   const n = Ip(e), r = Ip(t);
   if (!n || !r) return 0;
-  for (let o = 0; o < 3; o++) {
+  for (let o = 0; o < 4; o++) {
     if (n[o] > r[o]) return 1;
     if (n[o] < r[o]) return -1;
   }
@@ -21146,7 +21149,7 @@ async function m_() {
     try {
       const e = await import(
         /* @vite-ignore */
-        "/script.js"
+        "../../../../script.js"
       ), t = e == null ? void 0 : e.generateQuietPrompt;
       return typeof t == "function" ? t : null;
     } catch {

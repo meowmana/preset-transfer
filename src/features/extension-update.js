@@ -43,10 +43,12 @@ function parseVersionParts(version) {
   const normalized = normalizeVersion(version);
   const match = normalized.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
   if (!match) return null;
+  const tong = normalized.match(/-tong\.(\d+)/);
   return [
     parseInt(match[1] ?? '0', 10),
     parseInt(match[2] ?? '0', 10),
     parseInt(match[3] ?? '0', 10),
+    tong ? parseInt(tong[1], 10) : 0,
   ];
 }
 
@@ -54,7 +56,7 @@ function compareVersions(a, b) {
   const pa = parseVersionParts(a);
   const pb = parseVersionParts(b);
   if (!pa || !pb) return 0;
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     if (pa[i] > pb[i]) return 1;
     if (pa[i] < pb[i]) return -1;
   }
