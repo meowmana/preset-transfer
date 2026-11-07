@@ -8,8 +8,12 @@ import { CommonStyles } from '../styles/common-styles.js';
 const MORE_BUTTON_SELECTOR = '.pt-entry-more-btn';
 const MENU_SELECTOR = '.pt-entry-more-menu';
 const EVENT_NAMESPACE = '.pt-entry-more-btn';
+const PROMPT_MANAGER_CONTAINER_ID = 'completion_prompt_manager';
+const BAIBAI_ACTIONS_CLASS = 'bai-bai-preset-prompt-actions';
+const BAIBAI_BEAUTIFY_CLASS = 'pt-baibai-beautify-action';
 
 let eventsBound = false;
+let foreignRenderObserver = null;
 let promptManagerPatched = false;
 let nativeEntryMoreEnabled = false;
 
@@ -516,11 +520,89 @@ async function ensurePromptManagerPatched() {
   promptManagerPatched = true;
 }
 
+function closeBaiBaiActionMenu(element) {
+  const wrapper = element.closest('.prompt_manager_prompt_controls');
+  wrapper?.querySelector(`.${BAIBAI_ACTIONS_CLASS}`)?.classList.remove('bai-bai-preset-prompt-actions-visible');
+  wrapper?.querySelector('.bai-bai-preset-prompt-actions-hint')?.classList.remove('bai-bai-preset-prompt-actions-hint-hidden');
+  wrapper?.closest('li')?.classList.remove('bai-bai-preset-prompt-actions-open');
+}
+
+function createBaiBaiBeautifyButton() {
+  const button = getParentDocument().createElement('span');
+  button.className = `menu_button bai-bai-preset-prompt-action-button fa-solid fa-wand-magic-sparkles ${BAIBAI_BEAUTIFY_CLASS}`;
+  button.title = '美化正则';
+  button.setAttribute('role', 'button');
+  button.setAttribute('tabindex', '0');
+  button.addEventListener('pointerdown', stopEventPropagation);
+  button.addEventListener('mousedown', stopEventPropagation);
+  button.addEventListener('click', async (event) => {
+    stopEvent(event);
+    event.stopImmediatePropagation();
+    const identifier = button.closest('li[data-pm-identifier]')?.getAttribute('data-pm-identifier');
+    closeBaiBaiActionMenu(button);
+    if (!identifier) return;
+    try {
+      await handleBeautifyEntry(identifier);
+    } catch (error) {
+      console.error('[EntryMoreBtn] Failed to run "beautify" action:', error);
+      notify('error', `操作失败：${error.message}`);
+    }
+  });
+  return button;
+}
+
+// 柏宝箱会接管列表渲染，我们 patch 的原生渲染不再执行：有它的菜单就把美化正则塞进去，没有就补回我们的三个点
+function injectIntoForeignRenderedRows() {
+  if (!nativeEntryMoreEnabled) return;
+  const container = getParentDocument().getElementById(PROMPT_MANAGER_CONTAINER_ID);
+  if (!container) return;
+
+  container.querySelectorAll(`.${BAIBAI_ACTIONS_CLASS}`).forEach((actions) => {
+    if (actions.querySelector(`.${BAIBAI_BEAUTIFY_CLASS}`)) return;
+    actions.appendChild(createBaiBaiBeautifyButton());
+  });
+
+  container.querySelectorAll('li[data-pm-identifier]').forEach((row) => {
+    const controls = row.querySelector('.prompt_manager_prompt_controls');
+    if (!controls || controls.querySelector(`${MORE_BUTTON_SELECTOR}, .${BAIBAI_ACTIONS_CLASS}, .bai-bai-preset-prompt-icon-button`)) return;
+    const editButton = controls.querySelector('.prompt-manager-edit-action');
+    if (!editButton) return;
+    editButton.insertAdjacentHTML('afterend', createMoreButtonHtml(row.getAttribute('data-pm-identifier')));
+    bindEntryMoreButtonEvents(controls);
+  });
+}
+
+function startForeignRenderObserver() {
+  if (foreignRenderObserver) return;
+  const parentWindow = getParentWindow();
+  const container = getParentDocument().getElementById(PROMPT_MANAGER_CONTAINER_ID);
+  if (!container || typeof parentWindow.MutationObserver !== 'function') return;
+
+  let scheduled = false;
+  foreignRenderObserver = new parentWindow.MutationObserver(() => {
+    if (scheduled) return;
+    scheduled = true;
+    parentWindow.requestAnimationFrame(() => {
+      scheduled = false;
+      injectIntoForeignRenderedRows();
+    });
+  });
+  foreignRenderObserver.observe(container, { childList: true, subtree: true });
+  injectIntoForeignRenderedRows();
+}
+
+function stopForeignRenderObserver() {
+  foreignRenderObserver?.disconnect();
+  foreignRenderObserver = null;
+  getParentDocument().querySelectorAll(`.${BAIBAI_BEAUTIFY_CLASS}`).forEach((el) => el.remove());
+}
+
 function initNativeEntryMoreBtns() {
   const shouldRefresh = !nativeEntryMoreEnabled || !promptManagerPatched;
   nativeEntryMoreEnabled = true;
 
   bindDocumentEvents();
+  startForeignRenderObserver();
 
   void ensurePromptManagerPatched().then(() => {
     if (shouldRefresh && nativeEntryMoreEnabled) {
@@ -535,6 +617,7 @@ function destroyNativeEntryMoreBtns() {
   const parentWindow = getParentWindow();
 
   nativeEntryMoreEnabled = false;
+  stopForeignRenderObserver();
 
   if (eventsBound) {
     $(parentDocument).off(EVENT_NAMESPACE);
