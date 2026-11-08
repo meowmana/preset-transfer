@@ -17,7 +17,9 @@ import { updatePresetRegexStatus } from '../ui/regex-ui.js';
 import { createWorldbookBatchManageModal } from '../worldbook/batch-delete.js';
 import { loadSearchSettings, updateSearchSettings } from '../settings/search-settings.js';
 import { initDragDrop } from './drag-drop-events.js';
+import { PT } from '../core/api-compat.js';
 import { openWorldbookStitchDialog } from '../ui/worldbook-stitch-dialog.js';
+import { openVersionMoveForPreset } from '../features/preset-stitch-automation.js';
 import { bindRangeSelect } from '../ui/range-select.js';
 import { notify } from '../core/notify.js';
 function bindTransferEvents(apiInfo, modal) {
@@ -381,6 +383,10 @@ function bindTransferEvents(apiInfo, modal) {
 
   loadBtn.on('click', () => loadAndDisplayEntries(apiInfo));
   $('#pt-stitch-from-worldbook').on('click', () => openWorldbookStitchDialog(getCurrentApiInfo() || apiInfo));
+  $('#pt-version-move-manual').on('click', () => {
+    const info = getCurrentApiInfo() || apiInfo;
+    void openVersionMoveForPreset(info, PT.API.getLoadedPresetName?.() ?? null);
+  });
   $('#batch-delete-presets').on('click', async () => {
     const currentApiInfo = getCurrentApiInfo();
     if (!currentApiInfo) {

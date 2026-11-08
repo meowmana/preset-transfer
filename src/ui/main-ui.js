@@ -114,6 +114,7 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
                     <button id="load-entries" disabled>加载条目</button>
                     <button id="batch-delete-presets">批量管理预设</button>
                     <button id="pt-stitch-from-worldbook">从世界书缝入</button>
+                    <button id="pt-version-move-manual">版本搬迁</button>
                     <label class="auto-switch-label">
                         <input type="checkbox" id="auto-close-modal" checked>
                         <span>完成后自动关闭</span>
@@ -583,6 +584,7 @@ async function createTransferUI({ adapterKey = 'preset' } = {}) {
     }
     if (adapter.id !== 'preset') {
       $('#pt-stitch-from-worldbook').hide();
+      $('#pt-version-move-manual').hide();
     }
     if (!adapter.capabilities.supportsCompare) {
       $('#compare-entries').hide();

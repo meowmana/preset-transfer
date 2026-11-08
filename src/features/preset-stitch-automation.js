@@ -687,7 +687,39 @@ function initPresetStitchAutomation() {
   return true;
 }
 
+// 不靠导入，手动给某个预设弹版本搬迁框
+async function openVersionMoveForPreset(apiInfo, presetName) {
+  if (!apiInfo || !presetName) {
+    notify.info('先在酒馆里切到要搬的新版预设');
+    return;
+  }
+  let targetData;
+  try {
+    targetData = structuredClone(getPresetDataFromManager(apiInfo, presetName));
+  } catch (error) {
+    notify.error('读不到预设「' + presetName + '」: ' + (error?.message ?? error));
+    return;
+  }
+  const candidates = findOlderVersionCandidates(apiInfo, presetName, targetData);
+  if (candidates.length === 0) {
+    notify.info('「' + presetName + '」没找到旧版，或者旧版里的条目都已经搬过来了');
+    return;
+  }
+  if (!(await runVersionMove(presetName, targetData, candidates, ''))) return;
+  await apiInfo.presetManager.savePreset(presetName, targetData);
+  recordStitchPatchSnapshot(presetName, targetData, { force: true });
+  applyReasoningBindingIfCurrent(presetName, targetData);
+  if (PT.API.getLoadedPresetName?.() === presetName) {
+    try {
+      await switchToPreset(apiInfo, presetName);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export {
+  openVersionMoveForPreset,
   initPresetStitchAutomation,
   migrateStitches,
   maybeAutoMigrateOnImport,
