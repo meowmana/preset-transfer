@@ -353,7 +353,7 @@ function findOlderVersionCandidates(apiInfo, targetName, targetData) {
 }
 
 async function runVersionMove(targetName, targetData, candidates, toastPrefix) {
-  const choice = await showVersionMoveModal({ targetName, candidates });
+  const choice = await showVersionMoveModal({ targetName, targetData, candidates });
   if (!choice) {
     if (window.toastr) window.toastr.info(`${toastPrefix}已跳过版本搬迁`);
     return false;

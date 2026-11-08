@@ -1,4 +1,5 @@
 import { escapeAttr, escapeHtml, getJQuery, getParentWindow } from '../core/utils.js';
+import { diffText } from '../preset/text-diff.js';
 import { CommonStyles } from '../styles/common-styles.js';
 
 const MODAL_ID = 'pt-version-move-modal';
@@ -6,8 +7,45 @@ const CHANGED_COLOR = '#e8912d';
 const OVERWRITE_COLOR = '#d64545';
 const COPY_COLOR = '#2e9e5b';
 
-// candidates: [{ name, plan }]，第一个是默认来源。返回 { sourceName, mineIds, useMineIds, overwriteIds } 或 null（跳过）
-function showVersionMoveModal({ targetName, candidates }) {
+const DEL_STYLE = `color: ${OVERWRITE_COLOR}; text-decoration: line-through; text-decoration-color: ${OVERWRITE_COLOR};`;
+const INS_STYLE = `color: ${COPY_COLOR}; text-decoration: none; background: rgba(46,158,91,0.14); font-weight: 600;`;
+
+const contentOf = (data, identifier) =>
+  (Array.isArray(data?.prompts) ? data.prompts : []).find(p => p?.identifier === identifier)?.content ?? '';
+
+// 相同的段落太长时只留头尾两行，中间折起来
+function renderDiffHtml(segments) {
+  const html = [];
+  segments.forEach((seg, k) => {
+    if (seg.type === 'del') {
+      html.push(`<del style="${DEL_STYLE}">${escapeHtml(seg.text)}</del>`);
+      return;
+    }
+    if (seg.type === 'add') {
+      html.push(`<ins style="${INS_STYLE}">${escapeHtml(seg.text)}</ins>`);
+      return;
+    }
+    const lines = seg.text.split('\n');
+    const keepHead = k === 0 ? 0 : 2;
+    const keepTail = k === segments.length - 1 ? 0 : 2;
+    if (lines.length <= keepHead + keepTail + 3) {
+      html.push(`<span style="opacity: 0.6;">${escapeHtml(seg.text)}</span>`);
+      return;
+    }
+    const head = lines.slice(0, keepHead).join('\n');
+    const tail = lines.slice(lines.length - keepTail).join('\n');
+    const hidden = lines.length - keepHead - keepTail;
+    html.push(
+      `<span style="opacity: 0.6;">${escapeHtml(head)}${keepHead ? '\n' : ''}</span>` +
+        `<span style="display: block; opacity: 0.45; font-style: italic; margin: 4px 0;">⋯ 一样的 ${hidden} 行 ⋯</span>` +
+        `<span style="opacity: 0.6;">${keepTail ? '\n' : ''}${escapeHtml(tail)}</span>`,
+    );
+  });
+  return html.join('');
+}
+
+// candidates: [{ name, data, plan }]，第一个是默认来源。返回 { sourceName, mineIds, useMineIds, overwriteIds } 或 null（跳过）
+function showVersionMoveModal({ targetName, targetData, candidates }) {
   const $ = getJQuery();
   const parentWindow = getParentWindow();
   const vars = CommonStyles.getVars();
@@ -83,9 +121,12 @@ function showVersionMoveModal({ targetName, candidates }) {
     const changedRows = plan.changed
       .map(
         c => `
-        <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px dashed ${vars.borderColor};">
-          <span style="flex: 1; min-width: 0; overflow-wrap: anywhere; color:${CHANGED_COLOR}; font-weight:700;">${escapeHtml(c.name)}</span>
-          ${box(c.identifier, 'overwrite', OVERWRITE_COLOR)}${box(c.identifier, 'copy', COPY_COLOR)}
+        <div style="border-bottom: 1px dashed ${vars.borderColor};">
+          <div style="display: flex; align-items: center; gap: 4px; padding: 4px 0;">
+            <span class="pt-vm-diff-toggle" data-id="${escapeAttr(c.identifier)}" data-target="${escapeAttr(c.targetIdentifier)}" style="flex: 1; min-width: 0; overflow-wrap: anywhere; color:${CHANGED_COLOR}; font-weight:700; cursor: pointer;"><span class="pt-vm-arrow" style="display: inline-block; width: 1em; opacity: 0.7;">▸</span>${escapeHtml(c.name)}</span>
+            ${box(c.identifier, 'overwrite', OVERWRITE_COLOR)}${box(c.identifier, 'copy', COPY_COLOR)}
+          </div>
+          <div class="pt-vm-diff" style="display: none;"></div>
         </div>`,
       )
       .join('');
@@ -108,7 +149,7 @@ function showVersionMoveModal({ targetName, candidates }) {
       ${mineRows || '<div style="opacity:.6">没有</div>'}
       <div style="margin-top: 14px; margin-bottom: 4px;"><b style="color:${CHANGED_COLOR};">两边内容不一样 ${plan.changed.length} 条</b></div>
       <div style="font-size: calc(var(--pt-font-size) * 0.8125); line-height: 1.5; margin-bottom: 6px;">
-        <span style="color:${OVERWRITE_COLOR}; font-weight:700;">红色</span>是把旧版条目覆盖到新预设对应条目，<span style="color:${COPY_COLOR}; font-weight:700;">绿色</span>是在对应条目下方移植一个条目，不选择就是使用新版条目
+        <span style="color:${OVERWRITE_COLOR}; font-weight:700;">红色</span>是把旧版条目覆盖到新预设对应条目，<span style="color:${COPY_COLOR}; font-weight:700;">绿色</span>是在对应条目下方移植一个条目，不选择就是使用新版条目。点条目名字看两版哪里不一样
       </div>
       ${changedHead}
       ${changedRows || '<div style="opacity:.6">没有</div>'}
@@ -129,6 +170,27 @@ function showVersionMoveModal({ targetName, candidates }) {
     const $modal = $(`#${MODAL_ID}`, doc);
     $modal.on('change', '#pt-vm-source', function () {
       render(Number($(this).val()) || 0);
+    });
+    $modal.on('click', '.pt-vm-diff-toggle', function () {
+      const $panel = $(this).closest('div').next('.pt-vm-diff');
+      const open = $panel.is(':visible');
+      $(this).find('.pt-vm-arrow').text(open ? '▸' : '▾');
+      if (open) {
+        $panel.hide();
+        return;
+      }
+      if (!$panel.data('ready')) {
+        const source = candidates[Number($('#pt-vm-source', doc).val()) || 0];
+        const segments = diffText(contentOf(source.data, this.dataset.id), contentOf(targetData, this.dataset.target));
+        $panel.html(`
+          <div style="font-size: calc(var(--pt-font-size) * 0.75); opacity: 0.8; margin: 2px 0 6px;">
+            <del style="${DEL_STYLE}">红色划掉的</del>只有旧版有 ·
+            <ins style="${INS_STYLE}">绿色的</ins>只有新版有
+          </div>
+          <div style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; font-size: calc(var(--pt-font-size) * 0.8125); line-height: 1.55; max-height: calc(var(--pt-vh, 1vh) * 45); overflow-y: auto; overflow-x: hidden; padding: 8px 10px; margin-bottom: 8px; border-radius: 8px; background: ${vars.inputBg}; border: 1px solid ${vars.borderColor};">${renderDiffHtml(segments)}</div>`);
+        $panel.data('ready', true);
+      }
+      $panel.show();
     });
     $modal.on('click', '#pt-vm-all, #pt-vm-none', function (e) {
       e.preventDefault();
