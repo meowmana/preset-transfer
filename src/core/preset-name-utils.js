@@ -120,6 +120,7 @@ function arePresetsSameDifferentVersion(leftPresetName, rightPresetName, options
   }
 
   const leftSet = new Set(leftTokens);
+  const leftIsSubsetOfRight = leftTokens.length > 0 && leftTokens.every(t => rightSet.has(t));
   const rightIsSubsetOfLeft = rightTokens.length > 0 && rightTokens.every(t => leftSet.has(t));
   const normalizedContains =
     left.normalizedBase.includes(right.normalizedBase) || right.normalizedBase.includes(left.normalizedBase);
