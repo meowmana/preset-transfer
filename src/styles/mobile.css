@@ -40,7 +40,8 @@
   /* 按钮和开关样式适配 */
   #preset-transfer-modal #load-entries,
   #preset-transfer-modal #batch-delete-presets,
-  #preset-transfer-modal #pt-stitch-from-worldbook {
+  #preset-transfer-modal #pt-stitch-from-worldbook,
+  #preset-transfer-modal #pt-version-move-manual {
     width: 100%;
     min-width: 0;
     margin: 0;
@@ -183,7 +184,8 @@
   /* 调整按钮和开关 - 统一高度和样式 */
   #preset-transfer-modal #load-entries,
   #preset-transfer-modal #batch-delete-presets,
-  #preset-transfer-modal #pt-stitch-from-worldbook {
+  #preset-transfer-modal #pt-stitch-from-worldbook,
+  #preset-transfer-modal #pt-version-move-manual {
     width: 100%;
     min-width: 0 !important;
     height: 36px;

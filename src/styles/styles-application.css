@@ -306,7 +306,8 @@
 }
 
 #preset-transfer-modal #load-entries,
-#preset-transfer-modal #pt-stitch-from-worldbook {
+#preset-transfer-modal #pt-stitch-from-worldbook,
+#preset-transfer-modal #pt-version-move-manual {
     background: var(--pt-accent-color);
     border: none;
     color: var(--pt-body-color);
