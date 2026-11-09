@@ -2485,7 +2485,7 @@ function Ny(e, t, n = {}) {
     const l = ((s = a == null ? void 0 : a.raw) == null ? void 0 : s.uid) ?? Number(a == null ? void 0 : a.identifier);
     if (!Number.isFinite(l)) continue;
     const c = String(l);
-    e.entries.hasOwnProperty(c) && (typeof r == "function" ? r(e, l) : delete e.entries[c], i += 1);
+    e.entries.hasOwnProperty(c) && (typeof r == "function" ? r(e, l, { silent: !0 }) : delete e.entries[c], i += 1);
   }
   return {
     targetData: e,

@@ -177,7 +177,8 @@ export function applyDeleteEntriesFromWorldbook(targetData, entries, options = {
     const uidKey = String(uid);
     if (targetData.entries.hasOwnProperty(uidKey)) {
       if (typeof deleteEntryFn === 'function') {
-        deleteEntryFn(targetData, uid);
+        // 酒馆的单条删除默认每条弹确认框，而且等确认时不会删，外面已经弹过一次总确认了
+        deleteEntryFn(targetData, uid, { silent: true });
       } else {
         delete targetData.entries[uidKey];
       }
