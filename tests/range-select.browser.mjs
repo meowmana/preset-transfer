@@ -64,6 +64,12 @@ expect('左·取消后计数', /已选择 4\//.test(await count()), await count(
 await longPress(L, 3);
 await tap(L, 3);
 expect('左·点起点自己=撤销起点', await page.evaluate(() => !document.querySelector('#left-entries-list .pt-range-anchor')) && (await checkedOf(L, LB)).slice(0, 9) === '001101100');
+await longPress(L, 2);
+expect('左·起点本来勾着就提示取消', await page.evaluate(() => !!document.querySelector('#left-entries-list .pt-range-anchor.pt-range-unpick')));
+await tap(L, 7);
+c = await checkedOf(L, LB);
+expect('左·起点勾着时圈中间=取消 3..8', c.slice(0, 9) === '000000000', c);
+expect('左·圈着取消后计数', /已选择 0\//.test(await count()), await count());
 await none();
 await click(L, 1);
 await shiftClick(L, 4);

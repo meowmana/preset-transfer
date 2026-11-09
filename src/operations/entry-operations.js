@@ -12,6 +12,7 @@ import { avoidNameCollisions } from '../preset/worldbook-to-prompt.js';
 import { applyCopyEntryToPreset } from '../core/preset-data-pure.js';
 import { syncNativePromptManagerIfActive } from '../preset/native-sync.js';
 import { notify } from '../core/notify.js';
+import { updateSelectionCount } from '../display/ui-updates.js';
 
 let worldInfoModulePromise = null;
 
@@ -259,6 +260,18 @@ function startNewEntryMode(apiInfo, side) {
   $(`#${side}-side`).addClass('new-entry-target');
 }
 
+// 目标那侧会重画，勾选的那侧不重画，得手动取消
+function clearSourceSelection(fromSide) {
+  if (!['left', 'right', 'single'].includes(fromSide)) return;
+  const $ = getJQuery();
+  $(`#${fromSide}-entries-list`)
+    .find('.entry-checkbox, .group-checkbox')
+    .prop('checked', false)
+    .prop('indeterminate', false);
+  document.getElementById(`${fromSide}-entries-list`)?.ptRangeSelect?.clearAnchor();
+  updateSelectionCount();
+}
+
 async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPosition) {
   const $ = getJQuery();
   const selectedEntries = window.transferMode.selectedEntries;
@@ -351,6 +364,7 @@ async function executeTransferToPosition(apiInfo, fromSide, toSide, targetPositi
     // 转移成功
     console.log(`成功转移 ${selectedEntries.length} 个条目`);
     stitched = true;
+    clearSourceSelection(fromSide);
 
     // 检查是否需要自动关闭模态框
     if ($('#auto-close-modal').prop('checked')) {

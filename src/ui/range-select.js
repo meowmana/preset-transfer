@@ -19,6 +19,7 @@ function ensureStyle(doc) {
         padding: 0 6px; border-radius: 6px; font-size: 11px; line-height: 16px; white-space: nowrap;
         background: rgba(0, 0, 0, 0.8); color: #fff; border: 1px solid var(--pt-body-color, #fff);
       }
+      .pt-range-anchor.pt-range-unpick::after { content: '起点 · 点另一条取消中间'; }
     `;
     doc.head.appendChild(style);
 }
@@ -42,13 +43,14 @@ export function bindRangeSelect(list, { itemSelector, checkboxSelector, ignoreSe
     };
     const boxOf = item => item.querySelector(checkboxSelector);
     const clearAnchor = () => {
-        anchor?.classList.remove('pt-range-anchor');
+        anchor?.classList.remove('pt-range-anchor', 'pt-range-unpick');
         anchor = null;
     };
     const setAnchor = item => {
         clearAnchor();
         anchor = item;
         item.classList.add('pt-range-anchor');
+        item.classList.toggle('pt-range-unpick', !!boxOf(item)?.checked);
         navigator.vibrate?.(15);
     };
     const markItems = () => list.querySelectorAll(itemSelector).forEach(el => el.classList.add('pt-range-item'));
@@ -94,7 +96,7 @@ export function bindRangeSelect(list, { itemSelector, checkboxSelector, ignoreSe
 
         if (anchor) {
             swallow(e);
-            if (item !== anchor) fillRange(anchor, item, true);
+            if (item !== anchor) fillRange(anchor, item, !boxOf(anchor)?.checked);
             last = item;
             clearAnchor();
             return;
