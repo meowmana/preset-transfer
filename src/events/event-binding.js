@@ -385,7 +385,8 @@ function bindTransferEvents(apiInfo, modal) {
   $('#pt-stitch-from-worldbook').on('click', () => openWorldbookStitchDialog(getCurrentApiInfo() || apiInfo));
   $('#pt-version-move-manual').on('click', () => {
     const info = getCurrentApiInfo() || apiInfo;
-    void openVersionMoveForPreset(info, PT.API.getLoadedPresetName?.() ?? null);
+    const picked = $('#left-preset').val() || $('#right-preset').val();
+    void openVersionMoveForPreset(info, picked || (PT.API.getLoadedPresetName?.() ?? null));
   });
   $('#batch-delete-presets').on('click', async () => {
     const currentApiInfo = getCurrentApiInfo();

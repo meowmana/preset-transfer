@@ -19661,9 +19661,9 @@ function Sb(e, t) {
     const x = b.val();
     b.data("previous-value"), i.prop("disabled", !r.val() && !o.val()), f(), Mi(), x && Zi(x), x && Zi(x), b.data("previous-value", x);
   }), i.on("click", () => ve(e)), n("#pt-stitch-from-worldbook").on("click", () => v1(K() || e)), n("#pt-version-move-manual").on("click", () => {
-    var x, y;
-    const b = K() || e;
-    em(b, ((y = (x = V.API).getLoadedPresetName) == null ? void 0 : y.call(x)) ?? null);
+    var y, _;
+    const b = K() || e, x = n("#left-preset").val() || n("#right-preset").val();
+    em(b, x || (((_ = (y = V.API).getLoadedPresetName) == null ? void 0 : _.call(y)) ?? null));
   }), n("#batch-delete-presets").on("click", async () => {
     const b = K();
     if (!b) {
