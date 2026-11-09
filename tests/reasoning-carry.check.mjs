@@ -1,7 +1,7 @@
 // 跑法：node tests/reasoning-carry.check.mjs —— 读测试酒馆的“缝好测试”“单栏测试”，只在内存里改
 import fs from 'fs';
 import { extractStitchPatch, applyStitchPatch } from '../src/preset/stitch-patch.js';
-import { applyVersionMove } from '../src/preset/version-move.js';
+import { applyVersionMove, bindingToCarry, planVersionMove } from '../src/preset/version-move.js';
 const dir = '/home/ubuntu/st-test/SillyTavern/data/default-user/OpenAI Settings/';
 const load = (n) => JSON.parse(fs.readFileSync(dir + n + '.json', 'utf8'));
 const bind = { name: 'ecot', prefix: '<ecot>', suffix: '</ecot>', separator: '\n' };
@@ -20,4 +20,9 @@ expect('新版自己绑过的不覆盖', t2.extensions.ptReasoningBinding.prefix
 const t3 = load('单栏测试'); delete t3.extensions?.ptReasoningBinding;
 const r3 = applyVersionMove(src, t3, { mine: [], changed: [] }, { mineIds: [] });
 expect('版本搬迁（没搬条目）也带过去', t3.extensions?.ptReasoningBinding?.prefix === '<ecot>' && r3.reasoningCarried);
+const same = load('缝好测试'); delete same.extensions?.ptReasoningBinding;
+const p4 = planVersionMove(src, same);
+expect('条目一样只差方案：没条目可搬', p4.mine.length === 0 && p4.changed.length === 0, JSON.stringify({ mine: p4.mine.length, changed: p4.changed.length }));
+expect('条目一样只差方案：照样算有东西搬', bindingToCarry(src, same)?.prefix === '<ecot>');
+expect('新版自己绑过：不算', bindingToCarry(src, t2) === null);
 process.exit(fail ? 1 : 0);

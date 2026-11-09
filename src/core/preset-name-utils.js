@@ -26,18 +26,13 @@ function extractPresetVersionInfo(presetName) {
 
   const isBoundary = ch => !ch || /[\s\-_–—~†·•|\\/()（）[\]【】{}<>《》“”"'`]/.test(ch);
 
-  let picked = null;
-  for (let i = matches.length - 1; i >= 0; i--) {
-    const m = matches[i];
+  const bounded = matches.filter(m => {
     const idx = m.index ?? -1;
-    if (idx < 0) continue;
-    const before = raw[idx - 1];
-    const after = raw[idx + m[0].length];
-    if (isVersionBoundary(before) && isVersionBoundary(after)) {
-      picked = m;
-      break;
-    }
-  }
+    return idx >= 0 && isVersionBoundary(raw[idx - 1]) && isVersionBoundary(raw[idx + m[0].length]);
+  });
+  // “v1.41_2”这种：末尾光秃秃的 _2 是用户自己的副本编号，版本号认前面带点或带 v 的那个
+  const real = bounded.filter(m => /^v|\./i.test(m[0]));
+  let picked = (real.length ? real : bounded).at(-1) ?? null;
 
   if (!picked || picked.index === undefined) {
     const base = raw;

@@ -129,3 +129,8 @@ function applyVersionMove(oldData, newData, plan, choices = {}) {
 }
 
 export { planVersionMove, applyVersionMove };
+
+// 旧版绑了解析方案、新版还没绑：条目一样也算有东西可搬
+export function bindingToCarry(oldData, newData) {
+  return readReasoningBinding(newData) ? null : readReasoningBinding(oldData);
+}

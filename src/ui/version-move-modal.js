@@ -83,7 +83,7 @@ function showVersionMoveModal({ targetName, targetData, candidates }) {
             <span style="flex: none;">从哪份搬</span>
             <select id="pt-vm-source" style="flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border: 1px solid ${vars.borderColor}; background: ${vars.inputBg}; color: ${vars.textColor};">
               ${candidates
-                .map((c, i) => `<option value="${i}">${escapeHtml(c.name)}（你的 ${c.plan.mine.length} 条）</option>`)
+                .map((c, i) => `<option value="${i}">${escapeHtml(c.name)}（你的 ${c.plan.mine.length} 条${c.binding ? '，带解析方案' : ''}）</option>`)
                 .join('')}
             </select>
           </label>
@@ -105,7 +105,7 @@ function showVersionMoveModal({ targetName, targetData, candidates }) {
     </label>`;
 
   function render(index) {
-    const { plan } = candidates[index];
+    const { plan, binding } = candidates[index];
     const mineRows = plan.mine
       .map(m =>
         row(
@@ -138,7 +138,11 @@ function showVersionMoveModal({ targetName, targetData, candidates }) {
         </div>`
       : '';
 
+    const bindingNote = binding
+      ? `<div style="margin-bottom: 12px; padding: 8px 10px; border-radius: 8px; border: 1px dashed ${vars.borderColor}; line-height: 1.5;">会把这份绑的解析方案${binding.name ? `「${escapeHtml(binding.name)}」` : ''}带过去（${escapeHtml(binding.prefix)} … ${escapeHtml(binding.suffix)}），新版现在还没绑</div>`
+      : '';
     $('#pt-vm-body', doc).html(`
+      ${bindingNote}
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
         <b>你的条目（新版里没有）${plan.mine.length} 条</b>
         <span style="flex: none; font-size: calc(var(--pt-font-size) * 0.8125);">

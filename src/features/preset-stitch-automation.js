@@ -21,7 +21,7 @@ import {
   syncStitchPatchSnapshot,
 } from './preset-stitch-state.js';
 import { showVersionMoveModal } from '../ui/version-move-modal.js';
-import { applyVersionMove, planVersionMove } from '../preset/version-move.js';
+import { applyVersionMove, bindingToCarry, planVersionMove } from '../preset/version-move.js';
 
 const SKIP_AUTO_MIGRATE_KEY = '__ptPresetTransferSkipAutoMigrateUntilByPresetName';
 const SKIP_AUTO_MIGRATE_DEFAULT_TTL_MS = 60 * 1000;
@@ -345,8 +345,9 @@ function findOlderVersionCandidates(apiInfo, targetName, targetData) {
     }
     if (!Array.isArray(data?.prompts) || data.prompts.length === 0) continue;
     const plan = planVersionMove(data, targetData);
-    if (plan.mine.length === 0 && plan.changed.length === 0) continue;
-    list.push({ name, data, plan, hasStitch: hasAnyStitchMeta(data), version: extractPresetVersionInfo(name).version });
+    const binding = bindingToCarry(data, targetData);
+    if (plan.mine.length === 0 && plan.changed.length === 0 && !binding) continue;
+    list.push({ name, data, plan, binding, hasStitch: hasAnyStitchMeta(data), version: extractPresetVersionInfo(name).version });
   }
   list.sort((a, b) => Number(b.hasStitch) - Number(a.hasStitch) || compareVersions(b.version, a.version));
   return list;

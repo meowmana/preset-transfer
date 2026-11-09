@@ -11,4 +11,6 @@ same('【未定】Gemini-v0.0.3(正式版)', '【未定】Gemini-v0.0.2(正式�
 same('【未定】Gemini-v0.0.3(正式版)', '【测试】Gemini-v0.0.2(测试版)', false);
 same('Gemini v0.0.3', '【未定】Gemini 正式版 v0.0.2', true);
 same('万事成真v1.41', 'Ako 1.91', false);
+same('万事成真v1.52_1', '万事成真v1.41_2', true);
+same('万事成真v1.52_1', '万事成真_v1.3_缝好版', true);
 process.exit(fail ? 1 : 0);
