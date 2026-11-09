@@ -60,6 +60,18 @@ export function isCurrentActivePreset(presetName, apiInfo) {
  * @param {object} [updatedPresetData]
  * @returns {Promise<boolean>}
  */
+// 柏宝箱内存里攥着一份当前预设的分组表，重画时会整张写回去；只有导入事件能让它丢掉旧表、从预设重读
+async function reloadBaibaiGroupState(presetName) {
+  try {
+    const ctx = globalThis.SillyTavern?.getContext?.();
+    const type = ctx?.eventTypes?.OAI_PRESET_IMPORT_READY;
+    if (!ctx?.eventSource?.emit || !type) return;
+    await ctx.eventSource.emit(type, { presetName, ptRefreshOnly: true });
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function syncNativePromptManagerIfActive(apiInfo, presetName, updatedPresetData = null) {
   try {
     if (!presetName) return false;
@@ -126,6 +138,7 @@ export async function syncNativePromptManagerIfActive(apiInfo, presetName, updat
         oaiSettings.extensions = structuredClone(presetData.extensions);
       }
     }
+    await reloadBaibaiGroupState(presetName);
 
     // 5. Update PromptManager and re-render
     const pm = mod?.promptManager;
